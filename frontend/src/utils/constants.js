@@ -48,3 +48,10 @@ export const THEME_COLORS = {
   error: '#FF5252',
   warning: '#FFB74D'
 };
+
+// Utility functions
+export const formatToken = (value, decimals = 18) => {
+  if (!value) return '0';
+  const num = Number(value) / Math.pow(10, decimals);
+  return num.toLocaleString('en-US', { maximumFractionDigits: 2 });
+};

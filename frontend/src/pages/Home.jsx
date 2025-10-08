@@ -136,50 +136,54 @@ export default function Home() {
 
               {/* CTA Buttons */}
               <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
-                <Button
-                  component={motion.button}
+                <MotionBox
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  component={Link}
-                  to="/mining"
-                  variant="contained"
-                  size="large"
-                  startIcon={<RocketLaunchIcon />}
-                  sx={{
-                    background: 'linear-gradient(135deg, #FFD700, #FFA500)',
-                    color: '#000',
-                    fontWeight: 700,
-                    px: 4,
-                    py: 1.5,
-                    boxShadow: '0 8px 30px rgba(255, 215, 0, 0.4)',
-                    '&:hover': {
-                      background: 'linear-gradient(135deg, #FFA500, #FF8C00)',
-                      boxShadow: '0 12px 40px rgba(255, 215, 0, 0.6)',
-                    }
-                  }}
                 >
-                  {t('startMining')}
-                </Button>
-                <Button
-                  component={motion.button}
+                  <Button
+                    component={Link}
+                    to="/mining"
+                    variant="contained"
+                    size="large"
+                    startIcon={<RocketLaunchIcon />}
+                    sx={{
+                      background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+                      color: '#000',
+                      fontWeight: 700,
+                      px: 4,
+                      py: 1.5,
+                      boxShadow: '0 8px 30px rgba(255, 215, 0, 0.4)',
+                      '&:hover': {
+                        background: 'linear-gradient(135deg, #FFA500, #FF8C00)',
+                        boxShadow: '0 12px 40px rgba(255, 215, 0, 0.6)',
+                      }
+                    }}
+                  >
+                    {t('startMining')}
+                  </Button>
+                </MotionBox>
+                <MotionBox
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  variant="outlined"
-                  size="large"
-                  sx={{
-                    borderColor: '#FFD700',
-                    color: '#FFD700',
-                    fontWeight: 700,
-                    px: 4,
-                    py: 1.5,
-                    '&:hover': {
-                      borderColor: '#FFA500',
-                      bgcolor: 'rgba(255, 215, 0, 0.1)',
-                    }
-                  }}
                 >
-                  {t('learnMore')}
-                </Button>
+                  <Button
+                    variant="outlined"
+                    size="large"
+                    sx={{
+                      borderColor: '#FFD700',
+                      color: '#FFD700',
+                      fontWeight: 700,
+                      px: 4,
+                      py: 1.5,
+                      '&:hover': {
+                        borderColor: '#FFA500',
+                        bgcolor: 'rgba(255, 215, 0, 0.1)',
+                      }
+                    }}
+                  >
+                    {t('learnMore')}
+                  </Button>
+                </MotionBox>
               </Box>
             </MotionBox>
           </Grid>
