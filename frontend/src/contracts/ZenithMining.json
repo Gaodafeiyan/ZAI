@@ -1,0 +1,26 @@
+{
+  "abi": [
+    "function buyMiner(uint256 amountZAI, address referrer)",
+    "function upgradeMiner(uint256 minerId, uint256 amountZAI)",
+    "function renewMiner(uint256 minerId)",
+    "function claimRewards()",
+    "function claimLockedRewards()",
+    "function getUserMiners(address user) view returns (tuple(address owner, uint256 purchasePrice, uint256 powerLevel, uint256 purchaseTime, uint256 renewalTime, bool active)[])",
+    "function getPendingRewards(address user) view returns (uint256)",
+    "function getLockedRewards(address user) view returns (tuple(uint256 amount, uint256 releaseTime)[])",
+    "function getUnlockableRewards(address user) view returns (uint256)",
+    "function getUserTotalPower(address user) view returns (uint256)",
+    "function getGlobalTotalPower() view returns (uint256)",
+    "function getDailyReward() view returns (uint256)",
+    "function getRemainingRewards() view returns (uint256)",
+    "function getTotalUsers() view returns (uint256)",
+    "function getDownlines(address user) view returns (address[])",
+    "function totalReleased() view returns (uint256)",
+    "function initialDailyReward() view returns (uint256)",
+    "function decayRate() view returns (uint256)",
+    "function MAX_TOTAL_REWARDS() view returns (uint256)",
+    "event MinerBought(address indexed user, uint256 indexed minerId, uint256 price, uint256 powerLevel, address indexed referrer)",
+    "event RewardClaimed(address indexed user, uint256 unlockedAmount, uint256 lockedAmount, uint256 timestamp)",
+    "event ReferralReward(address indexed referrer, address indexed downline, uint256 level, uint256 amount)"
+  ]
+}
