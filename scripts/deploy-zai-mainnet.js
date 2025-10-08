@@ -25,11 +25,14 @@ async function main() {
     const balance = await hre.ethers.provider.getBalance(deployer.address);
     console.log("BNB 余额:", hre.ethers.formatEther(balance), "BNB");
 
-    if (balance < hre.ethers.parseEther("0.1")) {
-        console.error("\n❌ 错误: BNB余额不足！建议至少 0.2 BNB");
-        console.error("   请充值后重试");
+    if (balance < hre.ethers.parseEther("0.02")) {
+        console.error("\n❌ 错误: BNB余额不足！建议至少 0.05 BNB");
+        console.error("   当前余额:", hre.ethers.formatEther(balance), "BNB");
+        console.error("   预计部署成本: 0.01-0.03 BNB");
         process.exit(1);
     }
+
+    console.log("✅ BNB余额充足（预计消耗 0.01-0.03 BNB）");
 
     // ============ 配置参数 ============
     const MARKETING_WALLET = "0x786849bB473d78CA06DbB8224D768E2900Ad3809";
