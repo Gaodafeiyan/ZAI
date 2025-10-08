@@ -9,7 +9,7 @@ import PeopleIcon from '@mui/icons-material/People';
 import LocalFireDepartmentIcon from '@mui/icons-material/LocalFireDepartment';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import VerifiedIcon from '@mui/icons-material/Verified';
-import Miner Model3D from '../components/MinerModel3D';
+import MinerModel3D from '../components/MinerModel3D';
 import { getContracts } from '../utils/web3';
 import { formatToken } from '../utils/constants';
 
