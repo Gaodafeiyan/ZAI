@@ -14,6 +14,7 @@
     "deploy:testnet:zusd": "hardhat run scripts/deploy-zusd.js --network bscTestnet",
     "deploy:testnet:mining": "hardhat run scripts/deploy-mining.js --network bscTestnet",
     "deploy:mainnet": "hardhat run scripts/deploy-mainnet.js --network bsc",
+    "deploy:mainnet:zai": "hardhat run scripts/deploy-zai-mainnet.js --network bsc",
     "verify:zai": "hardhat verify --network bsc",
     "verify:zusd": "hardhat verify --network bsc",
     "verify:mining": "hardhat verify --network bsc"
