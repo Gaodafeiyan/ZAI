@@ -1,0 +1,46 @@
+{
+  "name": "zenithus-contracts",
+  "version": "1.0.0",
+  "description": "Zenithus DeFi Protocol Smart Contracts (ZAI, ZUSD, Mining)",
+  "main": "index.js",
+  "scripts": {
+    "test": "hardhat test",
+    "test:zai": "hardhat test test/ZAI.test.js",
+    "test:zusd": "hardhat test test/ZUSD.test.js",
+    "test:mining": "hardhat test test/Mining.test.js",
+    "compile": "hardhat compile",
+    "clean": "hardhat clean",
+    "deploy:testnet:zai": "hardhat run scripts/deploy.js --network bscTestnet",
+    "deploy:testnet:zusd": "hardhat run scripts/deploy-zusd.js --network bscTestnet",
+    "deploy:testnet:mining": "hardhat run scripts/deploy-mining.js --network bscTestnet",
+    "deploy:mainnet": "hardhat run scripts/deploy-mainnet.js --network bsc",
+    "verify:zai": "hardhat verify --network bsc",
+    "verify:zusd": "hardhat verify --network bsc",
+    "verify:mining": "hardhat verify --network bsc"
+  },
+  "keywords": [
+    "defi",
+    "bsc",
+    "binance-smart-chain",
+    "smart-contracts",
+    "zai",
+    "zusd",
+    "mining",
+    "staking",
+    "pancakeswap"
+  ],
+  "author": "Zenithus Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Gaodafeiyan/ZAI.git"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "hardhat": "^2.19.0"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.0.0",
+    "dotenv": "^16.3.1"
+  }
+}

@@ -1,0 +1,47 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Environment variables (NEVER commit these!)
+.env
+.env.local
+.env.production
+
+# Hardhat files
+cache/
+artifacts/
+typechain/
+typechain-types/
+
+# Deployment info (contains addresses)
+deployment-*.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build files
+dist/
+build/
+
+# Coverage
+coverage/
+coverage.json
+.nyc_output/
+
+# Hardhat ignition default folder for deployments against a local node
+ignition/deployments/chain-31337/
