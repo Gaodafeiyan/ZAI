@@ -18,10 +18,10 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
  * - 3-level referral system incentivizes growth
  * - Annual miner renewals create sustainable token burns
  *
- * ============ Economic Model ============
- * Total Rewards Pool: 9,000,000 ZAI (over ~10 years via decay)
- * Initial Daily Release: ~9,037 ZAI/day
- * Decay Rate: 0.999 per day (0.1% daily reduction)
+ * ============ Economic Model (30-Year Cycle) ============
+ * Total Rewards Pool: 9,000,000 ZAI (over ~30 years via decay)
+ * Initial Daily Release: 328 ZAI/day
+ * Decay Rate: 0.9999636 per day (optimized for 9M total over 30 years)
  * Fee Structure:
  * - Buy/Upgrade: 10% fee (50% burn, 30% marketing, 20% operational)
  * - Renewal: 10% of original purchase price (same allocation)
@@ -42,7 +42,7 @@ contract ZenithMining is Ownable, ReentrancyGuard {
     /// @notice ZAI token contract address (set after ZAI deployment)
     IERC20 public immutable ZAI;
 
-    /// @notice Total reward pool cap: 9,000,000 ZAI
+    /// @notice Total reward pool cap: 9,000,000 ZAI (30-year cycle)
     uint256 public constant MAX_TOTAL_REWARDS = 9_000_000 * 10**18;
 
     /// @notice Basis points denominator (for percentage calculations)
@@ -59,6 +59,9 @@ contract ZenithMining is Ownable, ReentrancyGuard {
 
     /// @notice Difficulty adjustment period: 14 days
     uint256 public constant DIFFICULTY_PERIOD = 14 days;
+
+    /// @notice Max miners to process in adjustDifficulty (gas limit)
+    uint256 public constant MAX_DEACTIVATE_PER_CALL = 1000;
 
     // ============ Structures ============
 
@@ -95,12 +98,12 @@ contract ZenithMining is Ownable, ReentrancyGuard {
     /// @notice Mining start timestamp (when rewards begin)
     uint256 public startTimestamp;
 
-    /// @notice Initial daily reward amount: ~9,037 ZAI/day
-    uint256 public initialDailyReward = 9037 * 10**18;
+    /// @notice Initial daily reward amount: 328 ZAI/day (30-year cycle)
+    uint256 public initialDailyReward = 328 * 10**18;
 
-    /// @notice Daily decay rate (0.999 in fixed-point, 99.9%)
-    /// @dev Represented as 999e15 (0.999 * 1e18)
-    uint256 public decayRate = 999e15;
+    /// @notice Daily decay rate (0.9999636 in fixed-point, 99.99636%)
+    /// @dev Represented as 9999636e11 (0.9999636 * 1e18) - optimized for 9M total over 30 years
+    uint256 public decayRate = 9999636e11;
 
     /// @notice Total ZAI released as rewards so far
     uint256 public totalReleased;
@@ -114,11 +117,21 @@ contract ZenithMining is Ownable, ReentrancyGuard {
     /// @notice Accumulated burn pool (for annual burns)
     uint256 public burnPool;
 
+    /// @notice Total locked rewards across all users (for circulating supply calc)
+    uint256 public totalLockedRewards;
+
     /// @notice Fee allocation percentages (in basis points)
     /// @dev Default: 50% burn, 30% marketing, 20% operational
     uint256 public burnFeePercent = 5000;      // 50%
     uint256 public marketingFeePercent = 3000; // 30%
     uint256 public operationalFeePercent = 2000; // 20%
+
+    /// @notice Annual burn target percentage (12.55% of circulating supply)
+    uint256 public annualBurnPercent = 1255; // 12.55% in basis points
+
+    /// @notice Track all users who have miners (for adjustDifficulty iteration)
+    address[] public allUsers;
+    mapping(address => bool) public isUserRegistered;
 
     // ============ Mappings ============
 
@@ -190,7 +203,7 @@ contract ZenithMining is Ownable, ReentrancyGuard {
     event BurnExecuted(uint256 amount, uint256 timestamp);
 
     /// @notice Emitted when difficulty is adjusted
-    event DifficultyAdjusted(uint256 newGlobalPower, uint256 timestamp);
+    event DifficultyAdjusted(uint256 newGlobalPower, uint256 deactivatedCount, uint256 timestamp);
 
     /// @notice Emitted when locked rewards are claimed
     event LockedRewardClaimed(address indexed user, uint256 amount);
@@ -273,6 +286,12 @@ contract ZenithMining is Ownable, ReentrancyGuard {
         // Update user and global power
         userTotalPower[msg.sender] += powerLevel;
         globalTotalPower += powerLevel;
+
+        // Register user in allUsers list (for difficulty adjustment)
+        if (!isUserRegistered[msg.sender]) {
+            allUsers.push(msg.sender);
+            isUserRegistered[msg.sender] = true;
+        }
 
         // Register referral (first time only)
         if (referrer[msg.sender] == address(0) && _referrer != address(0)) {
@@ -388,12 +407,13 @@ contract ZenithMining is Ownable, ReentrancyGuard {
         // Reset pending rewards
         pendingRewards[msg.sender] = 0;
 
-        // Store locked rewards
+        // Store locked rewards and update total locked
         if (lockedAmount > 0) {
             lockedRewards[msg.sender].push(LockedReward({
                 amount: lockedAmount,
                 releaseTime: block.timestamp + REWARD_LOCK_PERIOD
             }));
+            totalLockedRewards += lockedAmount;
         }
 
         // Transfer unlocked rewards
@@ -430,6 +450,10 @@ contract ZenithMining is Ownable, ReentrancyGuard {
         }
 
         require(totalUnlocked > 0, "Mining: No rewards unlocked yet");
+
+        // Update total locked rewards
+        totalLockedRewards -= totalUnlocked;
+
         require(ZAI.transfer(msg.sender, totalUnlocked), "Mining: Transfer failed");
 
         emit LockedRewardClaimed(msg.sender, totalUnlocked);
@@ -478,8 +502,10 @@ contract ZenithMining is Ownable, ReentrancyGuard {
      * @dev Calculate current daily reward with exponential decay
      * @return Current daily reward amount
      *
-     * Formula: T = initialDailyReward * (0.999 ^ daysSinceStart)
-     * Uses fixed-point arithmetic for fractional exponentiation
+     * Formula: T = initialDailyReward * (0.9999636 ^ daysSinceStart)
+     * Uses iterative multiplication for fixed-point decay (no external lib)
+     *
+     * FIXED: Loop-based pow approximation with cap check
      */
     function _getDailyReward() internal view returns (uint256) {
         uint256 daysSinceStart = (block.timestamp - startTimestamp) / 1 days;
@@ -487,36 +513,24 @@ contract ZenithMining is Ownable, ReentrancyGuard {
         // Handle edge case: day 0
         if (daysSinceStart == 0) return initialDailyReward;
 
-        // Calculate decay using fixed-point exponentiation
-        // decayRate^days = (0.999)^days
-        uint256 decayMultiplier = _pow(decayRate, daysSinceStart);
+        // Calculate decay using iterative multiplication
+        // current = initial * (decayRate ^ days)
+        uint256 current = initialDailyReward;
 
-        return (initialDailyReward * decayMultiplier) / PRECISION;
-    }
+        for (uint256 i = 0; i < daysSinceStart; i++) {
+            current = (current * decayRate) / PRECISION;
 
-    /**
-     * @dev Fixed-point exponentiation (base^exponent)
-     * @param base Base value in fixed-point (1e18 = 1.0)
-     * @param exponent Exponent (integer)
-     * @return Result in fixed-point
-     *
-     * Uses binary exponentiation for gas efficiency
-     */
-    function _pow(uint256 base, uint256 exponent) internal pure returns (uint256) {
-        if (exponent == 0) return PRECISION;
-
-        uint256 result = PRECISION;
-        uint256 tempBase = base;
-
-        while (exponent > 0) {
-            if (exponent % 2 == 1) {
-                result = (result * tempBase) / PRECISION;
-            }
-            tempBase = (tempBase * tempBase) / PRECISION;
-            exponent /= 2;
+            // Early exit if reward becomes negligible
+            if (current == 0) break;
         }
 
-        return result;
+        // Cap at remaining rewards to prevent over-distribution
+        uint256 remaining = MAX_TOTAL_REWARDS - totalReleased;
+        if (current > remaining) {
+            current = remaining;
+        }
+
+        return current;
     }
 
     /**
@@ -609,15 +623,31 @@ contract ZenithMining is Ownable, ReentrancyGuard {
 
     /**
      * @notice Execute annual burn (12.55% of circulating supply target)
-     * @dev Only owner can call (to be transferred to DAO)
+     * @dev Auto-calculates circulating supply and burns target percentage from burnPool
      *
-     * Burns accumulated fees from burnPool
+     * FIXED: Auto-calculation of circulating supply
+     * Circulating = totalSupply - locked rewards - burnPool
+     * Target = 12.55% of circulating
+     * Burns min(target, burnPool) to prevent over-burn
      */
     function executeAnnualBurn() external onlyOwner nonReentrant {
         require(burnPool > 0, "Mining: Burn pool is empty");
 
-        uint256 burnAmount = burnPool;
-        burnPool = 0;
+        // Get ZAI total supply
+        uint256 totalSupply = ZAI.totalSupply();
+
+        // Calculate circulating supply (exclude locked rewards and burn pool)
+        uint256 circulatingSupply = totalSupply - totalLockedRewards - burnPool;
+
+        // Calculate target burn (12.55% of circulating supply)
+        uint256 targetBurn = (circulatingSupply * annualBurnPercent) / BP_DENOMINATOR;
+
+        // Burn the minimum of target and available burn pool
+        uint256 burnAmount = targetBurn < burnPool ? targetBurn : burnPool;
+
+        require(burnAmount > 0, "Mining: No amount to burn");
+
+        burnPool -= burnAmount;
 
         // Burn by transferring to dead address
         require(ZAI.transfer(address(0xdead), burnAmount), "Mining: Burn failed");
@@ -626,10 +656,11 @@ contract ZenithMining is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @notice Adjust difficulty (recalculate global power)
+     * @notice Adjust difficulty (recalculate global power and deactivate expired miners)
      * @dev Called automatically every 14 days or manually by owner
      *
-     * Deactivates expired miners and updates global power
+     * FIXED: Auto-deactivate expired miners in loop (max 1000 per call for gas limit)
+     * Iterates through allUsers, checks each miner, deactivates if block.timestamp > renewalTime
      */
     function adjustDifficulty() external {
         require(
@@ -637,15 +668,40 @@ contract ZenithMining is Ownable, ReentrancyGuard {
             "Mining: Too early for difficulty adjustment"
         );
 
-        // Recalculate global power by checking all active miners
-        // (In production, consider iterating through active users list for gas efficiency)
+        uint256 deactivatedCount = 0;
+        uint256 processedCount = 0;
+
+        // Iterate through all users and deactivate expired miners
+        for (uint256 i = 0; i < allUsers.length && processedCount < MAX_DEACTIVATE_PER_CALL; i++) {
+            address user = allUsers[i];
+            Miner[] storage miners = userMiners[user];
+
+            for (uint256 j = 0; j < miners.length && processedCount < MAX_DEACTIVATE_PER_CALL; j++) {
+                processedCount++;
+
+                if (miners[j].active && block.timestamp > miners[j].renewalTime) {
+                    // Accrue rewards before deactivating
+                    _accrueRewards(user);
+
+                    // Deactivate miner
+                    miners[j].active = false;
+
+                    // Subtract power from totals
+                    userTotalPower[user] -= miners[j].powerLevel;
+                    globalTotalPower -= miners[j].powerLevel;
+
+                    deactivatedCount++;
+                }
+            }
+        }
+
         lastDifficultyAdjustment = block.timestamp;
 
-        emit DifficultyAdjusted(globalTotalPower, block.timestamp);
+        emit DifficultyAdjusted(globalTotalPower, deactivatedCount, block.timestamp);
     }
 
     /**
-     * @notice Deactivate expired miner
+     * @notice Deactivate expired miner manually
      * @param user Miner owner address
      * @param minerId Miner index
      *
@@ -723,6 +779,15 @@ contract ZenithMining is Ownable, ReentrancyGuard {
         burnFeePercent = _burnPercent;
         marketingFeePercent = _marketingPercent;
         operationalFeePercent = _operationalPercent;
+    }
+
+    /**
+     * @notice Update annual burn percentage
+     * @param _annualBurnPercent New annual burn percentage (basis points, e.g., 1255 for 12.55%)
+     */
+    function setAnnualBurnPercent(uint256 _annualBurnPercent) external onlyOwner {
+        require(_annualBurnPercent <= BP_DENOMINATOR, "Mining: Invalid percentage");
+        annualBurnPercent = _annualBurnPercent;
     }
 
     /**
@@ -859,5 +924,22 @@ contract ZenithMining is Ownable, ReentrancyGuard {
         if (minerId >= userMiners[user].length) return false;
         Miner storage miner = userMiners[user][minerId];
         return miner.active && block.timestamp < miner.renewalTime;
+    }
+
+    /**
+     * @notice Get total number of registered users
+     * @return Total users count
+     */
+    function getTotalUsers() external view returns (uint256) {
+        return allUsers.length;
+    }
+
+    /**
+     * @notice Get circulating supply (for burn calculation verification)
+     * @return Circulating supply amount
+     */
+    function getCirculatingSupply() external view returns (uint256) {
+        uint256 totalSupply = ZAI.totalSupply();
+        return totalSupply - totalLockedRewards - burnPool;
     }
 }
