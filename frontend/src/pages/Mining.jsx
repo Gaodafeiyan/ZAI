@@ -414,6 +414,7 @@ function Mining({ account }) {
       {/* Real-time Mining Display */}
       {parseFloat(miningStats.userPower) > 0 ? (
         <Card
+          key={`mining-display-${displayPending}`}
           className="financial-card"
           sx={{
             mb: 4,
