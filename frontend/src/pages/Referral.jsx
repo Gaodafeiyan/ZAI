@@ -1,19 +1,21 @@
 import { Container, Typography, Box, Card, CardContent, Button } from '@mui/material'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'react-toastify'
 
 function Referral({ account }) {
+  const { t } = useTranslation();
   const referralLink = account ? `${window.location.origin}?ref=${account}` : '';
 
   const copyLink = () => {
     navigator.clipboard.writeText(referralLink);
-    toast.success('Referral link copied!');
+    toast.success('推荐链接已复制！');
   };
 
   if (!account) {
     return (
       <Container maxWidth="lg" sx={{ py: 8, textAlign: 'center' }}>
         <Typography variant="h5" sx={{ color: '#B0B8C4' }}>
-          Connect wallet to view referral system
+          {t('connectWallet')}查看推荐系统
         </Typography>
       </Container>
     );
@@ -22,13 +24,13 @@ function Referral({ account }) {
   return (
     <Container maxWidth="lg" sx={{ py: 8 }}>
       <Typography variant="h3" sx={{ mb: 4, color: '#FFD700', fontWeight: 700 }}>
-        Referral System
+        {t('referral')}系统
       </Typography>
 
       <Card className="financial-card">
         <CardContent sx={{ p: 4 }}>
           <Typography variant="h6" sx={{ mb: 2, color: '#FFD700' }}>
-            Your Referral Link
+            {t('referralLink')}
           </Typography>
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', mb: 3 }}>
             <Typography
@@ -52,21 +54,21 @@ function Referral({ account }) {
                 fontWeight: 700
               }}
             >
-              Copy
+              {t('copyLink')}
             </Button>
           </Box>
 
           <Typography variant="body2" sx={{ color: '#B0B8C4', mb: 2 }}>
-            Earn rewards from your referrals:
+            从您的推荐中获得奖励：
           </Typography>
           <Typography variant="body2" sx={{ color: '#FFD700' }}>
-            • Level 1 (Direct): 5% of rewards
+            • {t('level1')}：直推奖励的 5%
           </Typography>
           <Typography variant="body2" sx={{ color: '#FFD700' }}>
-            • Level 2: 3% of rewards
+            • {t('level2')}：间推奖励的 3%
           </Typography>
           <Typography variant="body2" sx={{ color: '#FFD700' }}>
-            • Level 3: 1% of rewards
+            • {t('level3')}：三级奖励的 1%
           </Typography>
         </CardContent>
       </Card>

@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
 import { Container, Typography, Box, Grid, Card, CardContent, Button, TextField } from '@mui/material'
+import { useTranslation } from 'react-i18next'
 import { toast } from 'react-toastify'
 import { getContracts, formatToken, parseToken } from '../utils/web3'
 
 function Mining({ account }) {
+  const { t } = useTranslation();
   const [miners, setMiners] = useState([]);
   const [buyAmount, setBuyAmount] = useState('500');
   const [loading, setLoading] = useState(false);
@@ -65,7 +67,7 @@ function Mining({ account }) {
     return (
       <Container maxWidth="lg" sx={{ py: 8, textAlign: 'center' }}>
         <Typography variant="h5" sx={{ color: '#B0B8C4' }}>
-          Connect wallet to start mining
+          {t('connectWallet')}开始挖矿
         </Typography>
       </Container>
     );
@@ -74,18 +76,18 @@ function Mining({ account }) {
   return (
     <Container maxWidth="lg" sx={{ py: 8 }}>
       <Typography variant="h3" sx={{ mb: 4, color: '#FFD700', fontWeight: 700 }}>
-        Mining Center
+        {t('mining')}中心
       </Typography>
 
       {/* Buy Miner */}
       <Card className="financial-card" sx={{ mb: 4 }}>
         <CardContent sx={{ p: 4 }}>
           <Typography variant="h5" sx={{ mb: 3, color: '#FFD700' }}>
-            Purchase Miner
+            {t('buyMiner')}
           </Typography>
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-end' }}>
             <TextField
-              label="Amount (ZAI)"
+              label={t('amount') + ' (ZAI)'}
               type="number"
               value={buyAmount}
               onChange={(e) => setBuyAmount(e.target.value)}
@@ -105,18 +107,18 @@ function Mining({ account }) {
                 fontWeight: 700
               }}
             >
-              {loading ? 'Processing...' : 'Buy Miner'}
+              {loading ? t('loading') : t('purchase')}
             </Button>
           </Box>
           <Typography variant="caption" sx={{ color: '#B0B8C4', display: 'block', mt: 1 }}>
-            Min: 500 ZAI | Fee: 10% (50% burn + 30% marketing + 20% operational)
+            最低: 500 ZAI | 手续费: 10% (50% 销毁 + 30% 营销 + 20% 运营)
           </Typography>
         </CardContent>
       </Card>
 
       {/* Miners List */}
       <Typography variant="h5" sx={{ mb: 3, color: '#FFD700' }}>
-        My Miners ({miners.length})
+        {t('myMiners')} ({miners.length})
       </Typography>
 
       <Grid container spacing={3}>
@@ -125,16 +127,16 @@ function Mining({ account }) {
             <Card className="financial-card">
               <CardContent>
                 <Typography variant="h6" className="gold-text">
-                  Miner #{index + 1}
+                  算力节点 #{index + 1}
                 </Typography>
                 <Typography variant="body2" sx={{ color: '#B0B8C4', mt: 1 }}>
-                  Power: {formatToken(miner.powerLevel)} ZAI
+                  {t('powerLevel')}: {formatToken(miner.powerLevel)} ZAI
                 </Typography>
                 <Typography variant="body2" sx={{ color: '#B0B8C4' }}>
-                  Status: {miner.active ? '✅ Active' : '❌ Inactive'}
+                  状态: {miner.active ? '✅ ' + t('active') : '❌ ' + t('inactive')}
                 </Typography>
                 <Typography variant="caption" sx={{ color: '#8A92A0' }}>
-                  Purchased: {new Date(Number(miner.purchaseTime) * 1000).toLocaleDateString()}
+                  {t('purchaseTime')}: {new Date(Number(miner.purchaseTime) * 1000).toLocaleDateString('zh-CN')}
                 </Typography>
               </CardContent>
             </Card>
@@ -144,7 +146,7 @@ function Mining({ account }) {
         {miners.length === 0 && (
           <Grid item xs={12}>
             <Typography sx={{ textAlign: 'center', color: '#B0B8C4', py: 4 }}>
-              No miners yet. Purchase your first miner to start earning!
+              暂无算力节点。购买您的第一个算力节点开始赚取收益！
             </Typography>
           </Grid>
         )}
