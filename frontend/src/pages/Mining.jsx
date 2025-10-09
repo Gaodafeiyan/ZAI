@@ -257,7 +257,9 @@ function Mining({ account }) {
       await claimTx.wait();
 
       toast.success('奖励领取成功！');
-      loadRewards();
+
+      // 刷新所有数据
+      await loadData();
     } catch (error) {
       console.error('Claim rewards error:', error);
       toast.error(error.message || '领取失败');
@@ -285,7 +287,9 @@ function Mining({ account }) {
       await unlockTx.wait();
 
       toast.success('奖励解锁成功！');
-      loadRewards();
+
+      // 刷新所有数据
+      await loadData();
     } catch (error) {
       console.error('Unlock rewards error:', error);
       toast.error(error.message || '解锁失败');
