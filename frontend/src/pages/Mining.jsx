@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Container, Typography, Box, Grid, Card, CardContent, Button, TextField } from '@mui/material'
+import { Container, Typography, Box, Grid, Card, CardContent, Button, TextField, Divider } from '@mui/material'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'react-toastify'
 import { getContracts, formatToken, parseToken } from '../utils/web3'
@@ -20,7 +20,10 @@ function Mining({ account }) {
   const [miningStats, setMiningStats] = useState({
     userPower: '0',
     totalPower: '0',
-    rewardsPerSecond: '0'
+    rewardsPerSecond: '0',
+    dailyReward: '0',
+    totalSupply: '0',
+    burnedAmount: '0'
   });
   const [realtimeRewards, setRealtimeRewards] = useState(0);
 
@@ -36,16 +39,18 @@ function Mining({ account }) {
     await loadMiningStats(userMiners); // 传入矿机列表
   };
 
-  // 实时更新挖矿收益
+  // 实时同步合约数据（每10秒）
   useEffect(() => {
-    if (!account || parseFloat(miningStats.rewardsPerSecond) <= 0) return;
+    if (!account) return;
 
-    const interval = setInterval(() => {
-      setRealtimeRewards(prev => prev + parseFloat(miningStats.rewardsPerSecond));
-    }, 1000); // 每秒更新
+    const syncInterval = setInterval(async () => {
+      console.log('🔄 同步合约数据...');
+      await loadRewards(); // 刷新待领取奖励
+      await loadMiningStats(miners); // 刷新挖矿统计
+    }, 10000); // 每10秒同步一次
 
-    return () => clearInterval(interval);
-  }, [account, miningStats.rewardsPerSecond]);
+    return () => clearInterval(syncInterval);
+  }, [account, miners]);
 
   const loadMiners = async () => {
     try {
@@ -100,7 +105,7 @@ function Mining({ account }) {
   const loadMiningStats = async (userMiners = []) => {
     try {
       console.log('🔍 loadMiningStats 被调用，传入矿机数量:', userMiners.length);
-      const { mining } = await getContracts();
+      const { mining, zai } = await getContracts();
 
       // 方法1: 从合约读取
       let userPower = 0n;
@@ -131,14 +136,20 @@ function Mining({ account }) {
         console.warn('⚠️ 无法计算算力：userPower=0, userMiners.length=', userMiners.length);
       }
 
-      // 读取全网算力和每日奖励
-      const totalPower = await mining.getGlobalTotalPower(); // 使用合约提供的 getter 函数
-      const dailyReward = await mining.getDailyReward(); // 函数调用
+      // 读取全网算力、每日奖励、总量、销毁量
+      const [totalPower, dailyReward, totalSupply, burnedAmount] = await Promise.all([
+        mining.getGlobalTotalPower(),
+        mining.getDailyReward(),
+        zai.totalSupply(),
+        zai.balanceOf('0x000000000000000000000000000000000000dEaD') // 死亡地址余额 = 销毁量
+      ]);
 
       console.log('⛏️ 挖矿统计:', {
         userPower: userPower.toString(),
-        totalPower: totalPower ? totalPower.toString() : 'undefined',
-        dailyReward: dailyReward ? dailyReward.toString() : 'undefined'
+        totalPower: totalPower.toString(),
+        dailyReward: dailyReward.toString(),
+        totalSupply: totalSupply.toString(),
+        burnedAmount: burnedAmount.toString()
       });
 
       // 计算每秒产出：(用户算力 / 全网算力) * 每日奖励 / 86400秒
@@ -154,13 +165,20 @@ function Mining({ account }) {
       setMiningStats({
         userPower: formatToken(userPower),
         totalPower: formatToken(totalPower),
-        rewardsPerSecond: rewardsPerSecond
+        rewardsPerSecond: rewardsPerSecond,
+        dailyReward: formatToken(dailyReward),
+        totalSupply: formatToken(totalSupply),
+        burnedAmount: formatToken(burnedAmount)
       });
 
       console.log('✅ 挖矿统计加载成功:', {
-        userPowerFormatted: formatToken(userPower),
-        totalPowerFormatted: formatToken(totalPower),
-        rewardsPerSecond: rewardsPerSecond
+        userPower: formatToken(userPower),
+        totalPower: formatToken(totalPower),
+        rewardsPerSecond: rewardsPerSecond,
+        dailyReward: formatToken(dailyReward),
+        totalSupply: formatToken(totalSupply),
+        burnedAmount: formatToken(burnedAmount),
+        circulatingSupply: (parseFloat(formatToken(totalSupply)) - parseFloat(formatToken(burnedAmount))).toFixed(2)
       });
     } catch (error) {
       console.error('❌ Load mining stats error:', error);
@@ -288,43 +306,91 @@ function Mining({ account }) {
           }}
         >
           <CardContent sx={{ p: 4 }}>
-            <Grid container spacing={3} alignItems="center">
-              <Grid item xs={12} md={4}>
+            <Grid container spacing={2} alignItems="center">
+              <Grid item xs={12} md={3}>
                 <Box sx={{ textAlign: 'center' }}>
-                  <Typography variant="h6" sx={{ color: '#B0C4DE', mb: 1 }}>
+                  <Typography variant="body2" sx={{ color: '#B0C4DE', mb: 0.5 }}>
                     ⚡ 您的算力
                   </Typography>
-                  <Typography variant="h4" sx={{ color: '#FFD700', fontWeight: 700 }}>
+                  <Typography variant="h5" sx={{ color: '#FFD700', fontWeight: 700 }}>
                     {parseFloat(miningStats.userPower).toLocaleString()}
                   </Typography>
                   <Typography variant="caption" sx={{ color: '#90A4AE' }}>
-                    占全网 {miningStats.totalPower > 0 ? ((parseFloat(miningStats.userPower) / parseFloat(miningStats.totalPower)) * 100).toFixed(4) : '0'}%
+                    占全网 {miningStats.totalPower > 0 ? ((parseFloat(miningStats.userPower) / parseFloat(miningStats.totalPower)) * 100).toFixed(2) : '0'}%
                   </Typography>
                 </Box>
               </Grid>
-              <Grid item xs={12} md={4}>
+              <Grid item xs={12} md={3}>
                 <Box sx={{ textAlign: 'center' }}>
-                  <Typography variant="h6" sx={{ color: '#B0C4DE', mb: 1 }}>
-                    ⛏️ 实时产出
+                  <Typography variant="body2" sx={{ color: '#B0C4DE', mb: 0.5 }}>
+                    ⛏️ 待领取奖励
                   </Typography>
-                  <Typography variant="h3" sx={{ color: '#00E676', fontWeight: 700 }}>
-                    {realtimeRewards.toFixed(8)}
+                  <Typography variant="h5" sx={{ color: '#00E676', fontWeight: 700 }}>
+                    {parseFloat(rewards.pending).toFixed(4)}
                   </Typography>
                   <Typography variant="caption" sx={{ color: '#90A4AE' }}>
-                    ZAI (实时累计)
+                    ZAI (每10秒同步)
                   </Typography>
                 </Box>
               </Grid>
-              <Grid item xs={12} md={4}>
+              <Grid item xs={12} md={3}>
                 <Box sx={{ textAlign: 'center' }}>
-                  <Typography variant="h6" sx={{ color: '#B0C4DE', mb: 1 }}>
+                  <Typography variant="body2" sx={{ color: '#B0C4DE', mb: 0.5 }}>
                     🚀 挖矿速度
                   </Typography>
-                  <Typography variant="h4" sx={{ color: '#00BFFF', fontWeight: 700 }}>
+                  <Typography variant="h5" sx={{ color: '#00BFFF', fontWeight: 700 }}>
                     {parseFloat(miningStats.rewardsPerSecond).toFixed(8)}
                   </Typography>
                   <Typography variant="caption" sx={{ color: '#90A4AE' }}>
                     ZAI / 秒
+                  </Typography>
+                </Box>
+              </Grid>
+              <Grid item xs={12} md={3}>
+                <Box sx={{ textAlign: 'center' }}>
+                  <Typography variant="body2" sx={{ color: '#B0C4DE', mb: 0.5 }}>
+                    📅 今日产出
+                  </Typography>
+                  <Typography variant="h5" sx={{ color: '#FFA500', fontWeight: 700 }}>
+                    {parseFloat(miningStats.dailyReward).toFixed(2)}
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: '#90A4AE' }}>
+                    ZAI (全网)
+                  </Typography>
+                </Box>
+              </Grid>
+            </Grid>
+
+            <Divider sx={{ my: 2, borderColor: 'rgba(255, 215, 0, 0.2)' }} />
+
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={4}>
+                <Box sx={{ textAlign: 'center' }}>
+                  <Typography variant="caption" sx={{ color: '#B0C4DE' }}>
+                    💎 总供应量
+                  </Typography>
+                  <Typography variant="h6" sx={{ color: '#FFD700', fontWeight: 600 }}>
+                    {parseFloat(miningStats.totalSupply).toLocaleString(undefined, {maximumFractionDigits: 0})} ZAI
+                  </Typography>
+                </Box>
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <Box sx={{ textAlign: 'center' }}>
+                  <Typography variant="caption" sx={{ color: '#B0C4DE' }}>
+                    🔥 已销毁
+                  </Typography>
+                  <Typography variant="h6" sx={{ color: '#FF6B6B', fontWeight: 600 }}>
+                    {parseFloat(miningStats.burnedAmount).toLocaleString(undefined, {maximumFractionDigits: 0})} ZAI
+                  </Typography>
+                </Box>
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <Box sx={{ textAlign: 'center' }}>
+                  <Typography variant="caption" sx={{ color: '#B0C4DE' }}>
+                    💰 流通量
+                  </Typography>
+                  <Typography variant="h6" sx={{ color: '#00E676', fontWeight: 600 }}>
+                    {(parseFloat(miningStats.totalSupply) - parseFloat(miningStats.burnedAmount)).toLocaleString(undefined, {maximumFractionDigits: 0})} ZAI
                   </Typography>
                 </Box>
               </Grid>
