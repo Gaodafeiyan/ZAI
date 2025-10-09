@@ -132,13 +132,13 @@ function Mining({ account }) {
       }
 
       // 读取全网算力和每日奖励
-      const totalPower = await mining.globalTotalPower; // 公开变量
+      const totalPower = await mining.globalTotalPower(); // 公开变量也会自动生成 getter 函数
       const dailyReward = await mining.getDailyReward(); // 函数调用
 
       console.log('⛏️ 挖矿统计:', {
         userPower: userPower.toString(),
-        totalPower: totalPower.toString(),
-        dailyReward: dailyReward.toString()
+        totalPower: totalPower ? totalPower.toString() : 'undefined',
+        dailyReward: dailyReward ? dailyReward.toString() : 'undefined'
       });
 
       // 计算每秒产出：(用户算力 / 全网算力) * 每日奖励 / 86400秒
