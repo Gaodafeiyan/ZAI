@@ -132,7 +132,7 @@ function Mining({ account }) {
       }
 
       // 读取全网算力和每日奖励
-      const totalPower = await mining.globalTotalPower(); // 公开变量也会自动生成 getter 函数
+      const totalPower = await mining.getGlobalTotalPower(); // 使用合约提供的 getter 函数
       const dailyReward = await mining.getDailyReward(); // 函数调用
 
       console.log('⛏️ 挖矿统计:', {
