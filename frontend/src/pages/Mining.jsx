@@ -99,6 +99,7 @@ function Mining({ account }) {
 
   const loadMiningStats = async (userMiners = []) => {
     try {
+      console.log('🔍 loadMiningStats 被调用，传入矿机数量:', userMiners.length);
       const { mining } = await getContracts();
 
       // 方法1: 从合约读取
@@ -107,19 +108,27 @@ function Mining({ account }) {
         userPower = await mining.getUserTotalPower(account);
         console.log('✅ 从合约读取用户算力:', userPower.toString());
       } catch (e) {
-        console.warn('⚠️ 无法从合约读取算力，尝试从矿机列表计算');
+        console.warn('⚠️ 无法从合约读取算力:', e.message);
       }
 
       // 方法2: 如果合约返回0，从矿机列表手动计算
       if (userPower === 0n && userMiners.length > 0) {
         console.log('📊 从矿机列表计算算力，矿机数量:', userMiners.length);
         for (let i = 0; i < userMiners.length; i++) {
-          console.log(`矿机 #${i+1}: powerLevel=${userMiners[i].powerLevel.toString()}, active=${userMiners[i].active}`);
-          if (userMiners[i].active) {
-            userPower += userMiners[i].powerLevel;
+          const miner = userMiners[i];
+          console.log(`矿机 #${i+1}:`, {
+            powerLevel: miner.powerLevel.toString(),
+            active: miner.active,
+            type: typeof miner.powerLevel
+          });
+          if (miner.active) {
+            userPower += miner.powerLevel;
+            console.log(`  累加后算力: ${userPower.toString()}`);
           }
         }
         console.log('✅ 计算得到用户算力:', userPower.toString());
+      } else if (userPower === 0n) {
+        console.warn('⚠️ 无法计算算力：userPower=0, userMiners.length=', userMiners.length);
       }
 
       const [totalPower, dailyReward] = await Promise.all([
