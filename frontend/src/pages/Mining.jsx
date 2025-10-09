@@ -277,18 +277,6 @@ function Mining({ account }) {
         {t('mining')}中心
       </Typography>
 
-      {/* Debug Info - 临时调试 */}
-      <Box sx={{ mb: 2, p: 2, bgcolor: 'rgba(255,0,0,0.1)', borderRadius: 2 }}>
-        <Typography variant="body2" sx={{ color: '#fff' }}>
-          🔍 调试信息：
-          userPower={miningStats.userPower} |
-          totalPower={miningStats.totalPower} |
-          rewardsPerSecond={miningStats.rewardsPerSecond} |
-          miners={miners.length} |
-          条件={parseFloat(miningStats.userPower) > 0 ? '✅满足' : '❌不满足'}
-        </Typography>
-      </Box>
-
       {/* Real-time Mining Display */}
       {parseFloat(miningStats.userPower) > 0 ? (
         <Card
