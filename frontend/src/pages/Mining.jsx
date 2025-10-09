@@ -14,7 +14,8 @@ function Mining({ account }) {
   const [rewards, setRewards] = useState({
     pending: '0',
     locked: '0',
-    unlockable: '0'
+    unlockable: '0',
+    totalLocked: '0'
   });
 
   useEffect(() => {
@@ -43,17 +44,25 @@ function Mining({ account }) {
       ]);
       const lockedRewards = await mining.getLockedRewards(account);
 
+      // 计算所有锁定奖励的总金额
+      let totalLockedAmount = 0n;
+      for (let i = 0; i < lockedRewards.length; i++) {
+        totalLockedAmount += lockedRewards[i].amount;
+      }
+
       console.log('📊 奖励数据:', {
         pending: pending.toString(),
         unlockable: unlockable.toString(),
         lockedCount: lockedRewards.length,
+        totalLockedAmount: totalLockedAmount.toString(),
         lockedRewards: lockedRewards
       });
 
       setRewards({
         pending: formatToken(pending),
         locked: lockedRewards.length.toString(),
-        unlockable: formatToken(unlockable)
+        unlockable: formatToken(unlockable),
+        totalLocked: formatToken(totalLockedAmount)
       });
     } catch (error) {
       console.error('Load rewards error:', error);
@@ -172,7 +181,7 @@ function Mining({ account }) {
 
       {/* Rewards Summary */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} md={4}>
+        <Grid item xs={12} md={3}>
           <Card className="financial-card">
             <CardContent>
               <Typography variant="h5" className="gold-text">
@@ -184,26 +193,38 @@ function Mining({ account }) {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} md={4}>
+        <Grid item xs={12} md={3}>
           <Card className="financial-card">
             <CardContent>
               <Typography variant="h5" className="gold-text">
-                {rewards.locked}
+                {parseFloat(rewards.totalLocked).toFixed(4)}
               </Typography>
               <Typography variant="caption" sx={{ color: '#B0B8C4' }}>
-                锁定奖励条目 (30天)
+                锁定中奖励 ZAI (30%)
               </Typography>
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} md={4}>
+        <Grid item xs={12} md={3}>
           <Card className="financial-card">
             <CardContent>
               <Typography variant="h5" className="gold-text">
                 {parseFloat(rewards.unlockable).toFixed(4)}
               </Typography>
               <Typography variant="caption" sx={{ color: '#B0B8C4' }}>
-                可解锁奖励 ZAI (已满30天)
+                可解锁奖励 ZAI
+              </Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={3}>
+          <Card className="financial-card">
+            <CardContent>
+              <Typography variant="h5" className="gold-text">
+                {rewards.locked}
+              </Typography>
+              <Typography variant="caption" sx={{ color: '#B0B8C4' }}>
+                锁定条目数量
               </Typography>
             </CardContent>
           </Card>
