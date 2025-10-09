@@ -43,6 +43,13 @@ function Mining({ account }) {
       ]);
       const lockedRewards = await mining.getLockedRewards(account);
 
+      console.log('📊 奖励数据:', {
+        pending: pending.toString(),
+        unlockable: unlockable.toString(),
+        lockedCount: lockedRewards.length,
+        lockedRewards: lockedRewards
+      });
+
       setRewards({
         pending: formatToken(pending),
         locked: lockedRewards.length.toString(),
@@ -172,7 +179,7 @@ function Mining({ account }) {
                 {parseFloat(rewards.pending).toFixed(4)}
               </Typography>
               <Typography variant="caption" sx={{ color: '#B0B8C4' }}>
-                {t('pendingRewards')} ZAI
+                待领取奖励 ZAI (70%)
               </Typography>
             </CardContent>
           </Card>
@@ -184,7 +191,7 @@ function Mining({ account }) {
                 {rewards.locked}
               </Typography>
               <Typography variant="caption" sx={{ color: '#B0B8C4' }}>
-                {t('lockedRewards')}条目
+                锁定奖励条目 (30天)
               </Typography>
             </CardContent>
           </Card>
@@ -196,7 +203,7 @@ function Mining({ account }) {
                 {parseFloat(rewards.unlockable).toFixed(4)}
               </Typography>
               <Typography variant="caption" sx={{ color: '#B0B8C4' }}>
-                可解锁奖励 ZAI
+                可解锁奖励 ZAI (已满30天)
               </Typography>
             </CardContent>
           </Card>
