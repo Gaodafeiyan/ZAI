@@ -26,6 +26,9 @@ function Mining({ account }) {
     burnedAmount: '0'
   });
   const [realtimeRewards, setRealtimeRewards] = useState(0);
+  const [upgradeAmounts, setUpgradeAmounts] = useState({}); // 每个矿机的升级金额
+  const [upgradeLoading, setUpgradeLoading] = useState({}); // 每个矿机的升级加载状态
+  const [renewLoading, setRenewLoading] = useState({}); // 每个矿机的续费加载状态
 
   useEffect(() => {
     if (account) {
@@ -298,6 +301,75 @@ function Mining({ account }) {
     }
   };
 
+  const handleUpgradeMiner = async (minerId) => {
+    if (!account) {
+      toast.error('请先连接钱包');
+      return;
+    }
+
+    const amount = upgradeAmounts[minerId] || '0';
+    if (parseFloat(amount) <= 0) {
+      toast.error('请输入升级金额');
+      return;
+    }
+
+    setUpgradeLoading({ ...upgradeLoading, [minerId]: true });
+    try {
+      const { zai, mining } = await getContracts();
+      const amountParsed = parseToken(amount);
+
+      // Approve ZAI
+      toast.info('授权 ZAI...');
+      const approveTx = await zai.approve(await mining.getAddress(), amountParsed);
+      await approveTx.wait();
+
+      // Upgrade miner
+      toast.info('升级矿机中...');
+      const upgradeTx = await mining.upgradeMiner(minerId, amountParsed);
+      await upgradeTx.wait();
+
+      toast.success('矿机升级成功！');
+      await loadData();
+      setUpgradeAmounts({ ...upgradeAmounts, [minerId]: '' });
+    } catch (error) {
+      console.error('Upgrade miner error:', error);
+      toast.error(error.message || '升级失败');
+    } finally {
+      setUpgradeLoading({ ...upgradeLoading, [minerId]: false });
+    }
+  };
+
+  const handleRenewMiner = async (minerId, purchasePrice) => {
+    if (!account) {
+      toast.error('请先连接钱包');
+      return;
+    }
+
+    setRenewLoading({ ...renewLoading, [minerId]: true });
+    try {
+      const { zai, mining } = await getContracts();
+      const renewalFee = (BigInt(purchasePrice) * 1000n) / 10000n; // 10% of purchase price
+
+      // Approve ZAI
+      toast.info('授权 ZAI...');
+      const approveTx = await zai.approve(await mining.getAddress(), renewalFee);
+      await approveTx.wait();
+
+      // Renew miner
+      toast.info('续费矿机中...');
+      const renewTx = await mining.renewMiner(minerId);
+      await renewTx.wait();
+
+      toast.success('矿机续费成功！延长 365 天有效期');
+      await loadData();
+    } catch (error) {
+      console.error('Renew miner error:', error);
+      toast.error(error.message || '续费失败');
+    } finally {
+      setRenewLoading({ ...renewLoading, [minerId]: false });
+    }
+  };
+
   if (!account) {
     return (
       <Container maxWidth="lg" sx={{ py: 8, textAlign: 'center' }}>
@@ -562,26 +634,113 @@ function Mining({ account }) {
       </Typography>
 
       <Grid container spacing={3}>
-        {miners.map((miner, index) => (
-          <Grid item xs={12} md={6} key={index}>
-            <Card className="financial-card">
-              <CardContent>
-                <Typography variant="h6" className="gold-text">
-                  算力节点 #{index + 1}
-                </Typography>
-                <Typography variant="body2" sx={{ color: '#B0B8C4', mt: 1 }}>
-                  能量: {parseFloat(formatToken(miner.powerLevel)).toFixed(0)}
-                </Typography>
-                <Typography variant="body2" sx={{ color: '#B0B8C4' }}>
-                  状态: {miner.active ? '✅ ' + t('active') : '❌ ' + t('inactive')}
-                </Typography>
-                <Typography variant="caption" sx={{ color: '#8A92A0' }}>
-                  {t('purchaseTime')}: {new Date(Number(miner.purchaseTime) * 1000).toLocaleDateString('zh-CN')}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
+        {miners.map((miner, index) => {
+          const renewalTime = Number(miner.renewalTime) * 1000;
+          const now = Date.now();
+          const daysUntilExpiry = Math.ceil((renewalTime - now) / (1000 * 60 * 60 * 24));
+          const canRenew = daysUntilExpiry <= 30; // 可在过期前 30 天续费
+          const renewalFee = parseFloat(formatToken(miner.purchasePrice)) * 0.1;
+
+          return (
+            <Grid item xs={12} md={6} key={index}>
+              <Card className="financial-card">
+                <CardContent>
+                  <Typography variant="h6" className="gold-text" sx={{ mb: 2 }}>
+                    算力节点 #{index + 1}
+                  </Typography>
+
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="body2" sx={{ color: '#B0B8C4' }}>
+                      ⚡ 能量: {parseFloat(formatToken(miner.powerLevel)).toFixed(0)}
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: '#B0B8C4' }}>
+                      📊 状态: {miner.active ? '✅ ' + t('active') : '❌ ' + t('inactive')}
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: '#B0B8C4' }}>
+                      💰 购买价格: {parseFloat(formatToken(miner.purchasePrice)).toFixed(0)} ZAI
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: '#8A92A0', display: 'block', mt: 1 }}>
+                      🕐 购买时间: {new Date(Number(miner.purchaseTime) * 1000).toLocaleDateString('zh-CN')}
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: daysUntilExpiry <= 7 ? '#FF6B6B' : '#90A4AE', display: 'block' }}>
+                      ⏰ 到期时间: {new Date(renewalTime).toLocaleDateString('zh-CN')}
+                      {daysUntilExpiry > 0 ? ` (${daysUntilExpiry} 天后)` : ' (已过期)'}
+                    </Typography>
+                  </Box>
+
+                  <Divider sx={{ my: 2, borderColor: 'rgba(255, 215, 0, 0.2)' }} />
+
+                  {/* 升级矿机 */}
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="body2" sx={{ color: '#FFD700', mb: 1 }}>
+                      🚀 升级算力
+                    </Typography>
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <TextField
+                        size="small"
+                        type="number"
+                        placeholder="追加 ZAI 金额"
+                        value={upgradeAmounts[index] || ''}
+                        onChange={(e) => setUpgradeAmounts({ ...upgradeAmounts, [index]: e.target.value })}
+                        sx={{ flex: 1 }}
+                        InputProps={{
+                          inputProps: { min: 0 }
+                        }}
+                      />
+                      <Button
+                        variant="contained"
+                        size="small"
+                        onClick={() => handleUpgradeMiner(index)}
+                        disabled={upgradeLoading[index] || !miner.active}
+                        sx={{
+                          background: 'linear-gradient(135deg, #00E676, #00C853)',
+                          color: '#001F3F',
+                          fontWeight: 600,
+                          minWidth: '80px'
+                        }}
+                      >
+                        {upgradeLoading[index] ? '升级中' : '升级'}
+                      </Button>
+                    </Box>
+                    <Typography variant="caption" sx={{ color: '#90A4AE', display: 'block', mt: 0.5 }}>
+                      💡 扣除 10% 手续费，剩余增加到算力
+                    </Typography>
+                  </Box>
+
+                  {/* 续费矿机 */}
+                  <Box>
+                    <Typography variant="body2" sx={{ color: '#FFD700', mb: 1 }}>
+                      🔄 续费矿机
+                    </Typography>
+                    <Button
+                      variant="contained"
+                      fullWidth
+                      size="small"
+                      onClick={() => handleRenewMiner(index, miner.purchasePrice)}
+                      disabled={renewLoading[index] || !canRenew}
+                      sx={{
+                        background: canRenew
+                          ? 'linear-gradient(135deg, #FFD700, #FFC700)'
+                          : 'linear-gradient(135deg, #666, #555)',
+                        color: '#001F3F',
+                        fontWeight: 600
+                      }}
+                    >
+                      {renewLoading[index]
+                        ? '续费中...'
+                        : canRenew
+                          ? `续费 ${renewalFee.toFixed(2)} ZAI (延长365天)`
+                          : `${Math.abs(daysUntilExpiry)} 天后可续费`}
+                    </Button>
+                    <Typography variant="caption" sx={{ color: '#90A4AE', display: 'block', mt: 0.5 }}>
+                      💡 可在过期前 30 天续费，成本为购买价格的 10%
+                    </Typography>
+                  </Box>
+                </CardContent>
+              </Card>
+            </Grid>
+          );
+        })}
 
         {miners.length === 0 && (
           <Grid item xs={12}>
