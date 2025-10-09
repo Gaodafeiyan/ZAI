@@ -41,15 +41,22 @@ function Mining({ account }) {
   useEffect(() => {
     if (!account || !miningStats.rewardsPerSecond || parseFloat(miningStats.rewardsPerSecond) <= 0) return;
 
+    console.log('✅ 启动每秒累加，速度:', miningStats.rewardsPerSecond, 'ZAI/秒');
+
     const tickInterval = setInterval(() => {
       setDisplayPending(prev => {
         const current = parseFloat(prev) || 0;
         const increment = parseFloat(miningStats.rewardsPerSecond);
-        return (current + increment).toString();
+        const newValue = (current + increment).toString();
+        console.log('⏱️ 累加:', current.toFixed(4), '+', increment.toFixed(8), '=', parseFloat(newValue).toFixed(4));
+        return newValue;
       });
     }, 1000);
 
-    return () => clearInterval(tickInterval);
+    return () => {
+      console.log('❌ 停止每秒累加');
+      clearInterval(tickInterval);
+    };
   }, [account, miningStats.rewardsPerSecond]);
 
   const loadData = async () => {
@@ -518,7 +525,7 @@ function Mining({ account }) {
       {/* Rewards Summary */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} md={3}>
-          <Card className="financial-card">
+          <Card className="financial-card" key={`pending-${displayPending}`}>
             <CardContent>
               <Typography variant="h5" sx={{ color: '#FFD700', fontWeight: 700, fontSize: '1.8rem' }}>
                 {parseFloat(displayPending).toFixed(4)}
