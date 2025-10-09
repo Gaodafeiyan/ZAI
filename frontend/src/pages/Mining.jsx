@@ -39,29 +39,52 @@ function Mining({ account }) {
     await loadMiningStats(userMiners); // 传入矿机列表
   };
 
-  // 实时同步合约数据（每5秒）
+  // 前端每秒模拟累加（视觉效果）
+  useEffect(() => {
+    if (!account || !miningStats.rewardsPerSecond || parseFloat(miningStats.rewardsPerSecond) <= 0) return;
+
+    console.log('✅ 启动前端实时累加，每秒增加', miningStats.rewardsPerSecond, 'ZAI');
+
+    const tickInterval = setInterval(() => {
+      setRewards(prev => {
+        const newPending = (parseFloat(prev.pending) + parseFloat(miningStats.rewardsPerSecond)).toString();
+        console.log('⏱️ 前端累加:', prev.pending, '→', parseFloat(newPending).toFixed(8));
+        return {
+          ...prev,
+          pending: newPending
+        };
+      });
+    }, 1000); // 每秒累加
+
+    return () => {
+      console.log('❌ 清除前端累加');
+      clearInterval(tickInterval);
+    };
+  }, [account, miningStats.rewardsPerSecond]);
+
+  // 定期从合约校准数据（每30秒）
   useEffect(() => {
     if (!account) return;
 
-    console.log('✅ 启动定时同步，每5秒执行一次');
+    console.log('✅ 启动定时校准，每30秒执行一次');
 
     const syncInterval = setInterval(async () => {
-      console.log('🔄 同步合约数据...', new Date().toLocaleTimeString());
+      console.log('🔄 从合约校准数据...', new Date().toLocaleTimeString());
       try {
         const { mining } = await getContracts();
         const currentMiners = await mining.getUserMiners(account);
-        await loadRewards(); // 刷新待领取奖励
+        await loadRewards(); // 用合约真实值校准
         await loadMiningStats(currentMiners); // 刷新挖矿统计
       } catch (error) {
-        console.error('同步数据失败:', error);
+        console.error('校准数据失败:', error);
       }
-    }, 5000); // 每5秒同步一次
+    }, 30000); // 每30秒校准一次
 
     return () => {
-      console.log('❌ 清除定时同步');
+      console.log('❌ 清除定时校准');
       clearInterval(syncInterval);
     };
-  }, [account]); // 只依赖 account，不依赖 miners
+  }, [account]);
 
   const loadMiners = async () => {
     try {
@@ -340,7 +363,7 @@ function Mining({ account }) {
                     {parseFloat(rewards.pending).toFixed(4)}
                   </Typography>
                   <Typography variant="caption" sx={{ color: '#90A4AE' }}>
-                    ZAI (每10秒同步)
+                    ZAI (实时增长)
                   </Typography>
                 </Box>
               </Grid>
