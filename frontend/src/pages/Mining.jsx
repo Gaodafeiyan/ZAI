@@ -26,6 +26,7 @@ function Mining({ account }) {
     burnedAmount: '0'
   });
   const [realtimeRewards, setRealtimeRewards] = useState(0);
+  const [displayPending, setDisplayPending] = useState('0'); // 前端显示的待领取奖励（每秒累加）
   const [upgradeAmounts, setUpgradeAmounts] = useState({}); // 每个矿机的升级金额
   const [upgradeLoading, setUpgradeLoading] = useState({}); // 每个矿机的升级加载状态
   const [renewLoading, setRenewLoading] = useState({}); // 每个矿机的续费加载状态
@@ -35,6 +36,21 @@ function Mining({ account }) {
       loadData();
     }
   }, [account]);
+
+  // 前端每秒累加（视觉效果）
+  useEffect(() => {
+    if (!account || !miningStats.rewardsPerSecond || parseFloat(miningStats.rewardsPerSecond) <= 0) return;
+
+    const tickInterval = setInterval(() => {
+      setDisplayPending(prev => {
+        const current = parseFloat(prev) || 0;
+        const increment = parseFloat(miningStats.rewardsPerSecond);
+        return (current + increment).toString();
+      });
+    }, 1000);
+
+    return () => clearInterval(tickInterval);
+  }, [account, miningStats.rewardsPerSecond]);
 
   const loadData = async () => {
     const userMiners = await loadMiners(); // 先加载矿机，获取矿机列表
@@ -106,15 +122,17 @@ function Mining({ account }) {
         lockedRewards: lockedRewards
       });
 
+      const pendingFormatted = formatToken(pending);
+
       setRewards({
-        pending: formatToken(pending),
+        pending: pendingFormatted,
         locked: lockedRewards.length.toString(),
         unlockable: formatToken(unlockable),
         totalLocked: formatToken(totalLockedAmount)
       });
 
-      // 初始化实时奖励为当前待领取奖励
-      setRealtimeRewards(parseFloat(formatToken(pending)));
+      // 每3秒用合约数据校准前端显示
+      setDisplayPending(pendingFormatted);
     } catch (error) {
       console.error('Load rewards error:', error);
     }
@@ -417,10 +435,10 @@ function Mining({ account }) {
                     ⛏️ 待领取奖励
                   </Typography>
                   <Typography variant="h5" sx={{ color: '#00E676', fontWeight: 700 }}>
-                    {parseFloat(rewards.pending).toFixed(4)}
+                    {parseFloat(displayPending).toFixed(4)}
                   </Typography>
                   <Typography variant="caption" sx={{ color: '#90A4AE' }}>
-                    ZAI (每3秒同步)
+                    ZAI (实时增长)
                   </Typography>
                 </Box>
               </Grid>
