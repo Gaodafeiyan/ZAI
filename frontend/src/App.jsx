@@ -12,6 +12,7 @@ import Footer from './components/Footer'
 import Home from './pages/Home'
 import Dashboard from './pages/Dashboard'
 import Mining from './pages/Mining'
+import Swap from './pages/Swap'
 import Referral from './pages/Referral'
 import Wallet from './pages/Wallet'
 
@@ -147,10 +148,10 @@ function App() {
               <Route path="/" element={<Home account={account} onConnect={connectWallet} />} />
               <Route path="/dashboard" element={<Dashboard account={account} />} />
               <Route path="/mining" element={<Mining account={account} />} />
+              <Route path="/swap" element={<Swap account={account} />} />
               <Route path="/referral" element={<Referral account={account} />} />
               <Route path="/wallet" element={<Wallet account={account} />} />
-            </Routes>
-          </main>
+            </Routes>          </main>
           <Footer />
           <ToastContainer
             position="top-right"

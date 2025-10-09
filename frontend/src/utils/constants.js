@@ -4,7 +4,9 @@ export const CONTRACTS = {
   ZUSD: import.meta.env.VITE_ZUSD_ADDRESS,
   MINING: import.meta.env.VITE_MINING_ADDRESS,
   ZAI_ZUSD_PAIR: import.meta.env.VITE_ZAI_ZUSD_PAIR,
-  ZUSD_USDT_PAIR: import.meta.env.VITE_ZUSD_USDT_PAIR
+  ZUSD_USDT_PAIR: import.meta.env.VITE_ZUSD_USDT_PAIR,
+  USDT: '0x55d398326f99059fF775485246999027B3197955', // BSC USDT
+  PANCAKE_ROUTER: '0x10ED43C718714eb63d5aA57B78B54704E256024E' // PancakeSwap V2 Router
 };
 
 // Chain configuration

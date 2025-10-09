@@ -10,6 +10,7 @@ const resources = {
       mining: '挖矿',
       referral: '推荐',
       wallet: '钱包',
+      swap: '兑换',
       connectWallet: '连接钱包',
       disconnect: '断开连接',
 

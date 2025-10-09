@@ -51,6 +51,9 @@ function Header({ account, onConnect, loading }) {
             <Button component={Link} to="/mining" color="inherit" sx={{ '&:hover': { color: '#FFD700' } }}>
               {t('mining')}
             </Button>
+            <Button component={Link} to="/swap" color="inherit" sx={{ '&:hover': { color: '#FFD700' } }}>
+              {t('swap')}
+            </Button>
             <Button component={Link} to="/referral" color="inherit" sx={{ '&:hover': { color: '#FFD700' } }}>
               {t('referral')}
             </Button>
