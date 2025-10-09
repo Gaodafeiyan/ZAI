@@ -95,8 +95,8 @@ function Mining({ account }) {
       const { mining } = await getContracts();
       const [userPower, totalPower, dailyReward] = await Promise.all([
         mining.getUserTotalPower(account),
-        mining.globalTotalPower(),
-        mining.getCurrentDailyReward()
+        mining.globalTotalPower(), // 这是公开变量，直接读取
+        mining.getDailyReward() // 正确的函数名
       ]);
 
       console.log('⛏️ 挖矿统计:', {
@@ -120,8 +120,15 @@ function Mining({ account }) {
         totalPower: formatToken(totalPower),
         rewardsPerSecond: rewardsPerSecond
       });
+
+      console.log('✅ 挖矿统计加载成功:', {
+        userPowerFormatted: formatToken(userPower),
+        totalPowerFormatted: formatToken(totalPower),
+        rewardsPerSecond: rewardsPerSecond
+      });
     } catch (error) {
-      console.error('Load mining stats error:', error);
+      console.error('❌ Load mining stats error:', error);
+      console.error('错误详情:', error.message);
     }
   };
 
@@ -237,7 +244,7 @@ function Mining({ account }) {
       </Typography>
 
       {/* Real-time Mining Display */}
-      {parseFloat(miningStats.userPower) > 0 && (
+      {parseFloat(miningStats.userPower) > 0 ? (
         <Card
           className="financial-card"
           sx={{
@@ -290,6 +297,13 @@ function Mining({ account }) {
             </Grid>
           </CardContent>
         </Card>
+      ) : (
+        <Box sx={{ mb: 4, p: 2, bgcolor: 'rgba(255,255,255,0.05)', borderRadius: 2 }}>
+          <Typography variant="body2" sx={{ color: '#90A4AE', textAlign: 'center' }}>
+            💡 购买算力节点后将显示实时挖矿数据
+            {miningStats.userPower !== '0' && ` (当前算力: ${miningStats.userPower})`}
+          </Typography>
+        </Box>
       )}
 
       {/* Rewards Summary */}
