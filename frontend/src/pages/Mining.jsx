@@ -65,11 +65,11 @@ function Mining({ account }) {
     await loadMiningStats(userMiners); // 传入矿机列表
   };
 
-  // 定期从合约同步真实数据（每3秒）
+  // 定期从合约同步挖矿统计数据（每30秒，不同步待领取奖励以避免跳变）
   useEffect(() => {
     if (!account) return;
 
-    console.log('✅ 启动合约实时同步，每3秒从合约读取真实数据');
+    console.log('✅ 启动定期同步（每30秒），只同步挖矿统计，不影响前端累加');
 
     const syncInterval = setInterval(async () => {
       const timestamp = new Date().toLocaleTimeString();
@@ -77,18 +77,17 @@ function Mining({ account }) {
         const { mining } = await getContracts();
         const currentMiners = await mining.getUserMiners(account);
 
-        // 同步所有数据
-        await loadRewards(); // 真实的待领取奖励
-        await loadMiningStats(currentMiners); // 挖矿统计
+        // 只同步挖矿统计（算力、速度等），不同步待领取奖励
+        await loadMiningStats(currentMiners);
 
-        console.log('🔄 合约数据已同步', timestamp);
+        console.log('🔄 挖矿统计已同步（不影响待领取奖励）', timestamp);
       } catch (error) {
         console.error('同步失败:', error);
       }
-    }, 3000); // 每3秒同步一次（BSC 平均出块时间）
+    }, 30000); // 每30秒同步一次
 
     return () => {
-      console.log('❌ 停止合约同步');
+      console.log('❌ 停止定期同步');
       clearInterval(syncInterval);
     };
   }, [account]);
@@ -272,7 +271,7 @@ function Mining({ account }) {
       return;
     }
 
-    if (parseFloat(rewards.pending) <= 0) {
+    if (parseFloat(displayPending) <= 0) {
       toast.error('没有可领取的奖励');
       return;
     }
@@ -286,7 +285,7 @@ function Mining({ account }) {
 
       toast.success('奖励领取成功！');
 
-      // 刷新所有数据
+      // 刷新所有数据（会重新校准 displayPending）
       await loadData();
     } catch (error) {
       console.error('Claim rewards error:', error);
