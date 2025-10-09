@@ -132,7 +132,7 @@ function Mining({ account }) {
       }
 
       const [totalPower, dailyReward] = await Promise.all([
-        mining.globalTotalPower(),
+        mining.globalTotalPower, // 这是公开变量，不是函数，直接读取
         mining.getDailyReward()
       ]);
 
