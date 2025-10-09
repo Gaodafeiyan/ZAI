@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
 import { Container, Typography, Box, Grid, Card, CardContent } from '@mui/material'
+import { useTranslation } from 'react-i18next'
 import { getContracts, formatToken } from '../utils/web3'
 
 function Dashboard({ account }) {
+  const { t } = useTranslation();
   const [userStats, setUserStats] = useState({
     power: '0',
     pending: '0',
@@ -42,7 +44,7 @@ function Dashboard({ account }) {
     return (
       <Container maxWidth="lg" sx={{ py: 8, textAlign: 'center' }}>
         <Typography variant="h5" sx={{ color: '#B0B8C4' }}>
-          Connect wallet to view dashboard
+          {t('connectWallet')}查看仪表盘
         </Typography>
       </Container>
     );
@@ -51,7 +53,7 @@ function Dashboard({ account }) {
   return (
     <Container maxWidth="lg" sx={{ py: 8 }}>
       <Typography variant="h3" sx={{ mb: 4, color: '#FFD700', fontWeight: 700 }}>
-        Dashboard
+        {t('dashboard')}
       </Typography>
 
       <Grid container spacing={3}>
@@ -62,7 +64,7 @@ function Dashboard({ account }) {
                 {parseFloat(userStats.power).toLocaleString()}
               </Typography>
               <Typography variant="caption" sx={{ color: '#B0B8C4' }}>
-                Total Power
+                {t('yourPower')}
               </Typography>
             </CardContent>
           </Card>
@@ -75,7 +77,7 @@ function Dashboard({ account }) {
                 {parseFloat(userStats.pending).toFixed(4)}
               </Typography>
               <Typography variant="caption" sx={{ color: '#B0B8C4' }}>
-                Pending Rewards
+                {t('pendingRewards')}
               </Typography>
             </CardContent>
           </Card>
@@ -88,7 +90,7 @@ function Dashboard({ account }) {
                 {userStats.locked}
               </Typography>
               <Typography variant="caption" sx={{ color: '#B0B8C4' }}>
-                Locked Entries
+                {t('lockedRewards')}条目
               </Typography>
             </CardContent>
           </Card>
@@ -101,7 +103,7 @@ function Dashboard({ account }) {
                 {parseFloat(userStats.unlockable).toFixed(4)}
               </Typography>
               <Typography variant="caption" sx={{ color: '#B0B8C4' }}>
-                Unlockable
+                可解锁奖励
               </Typography>
             </CardContent>
           </Card>
