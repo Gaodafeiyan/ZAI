@@ -80,7 +80,7 @@ export default function Home() {
   return (
     <Box sx={{ minHeight: '100vh', background: 'linear-gradient(180deg, #0A0E17 0%, #001529 50%, #0A0E17 100%)' }}>
       {/* Hero Section */}
-      <Container maxWidth="lg" sx={{ pt: 8, pb: 6 }}>
+      <Container maxWidth="lg" sx={{ py: { xs: 4, md: 8 }, px: { xs: 2, md: 3 } }}>
         <Grid container spacing={6} alignItems="center">
           <Grid item xs={12} md={6}>
             <MotionBox
@@ -108,7 +108,7 @@ export default function Home() {
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                   mb: 2,
-                  fontSize: { xs: '2.5rem', md: '3.5rem' }
+                  fontSize: { xs: '2rem', md: '3.5rem' }
                 }}
               >
                 {t('heroTitle')}
@@ -118,7 +118,8 @@ export default function Home() {
                 sx={{
                   color: '#B0C4DE',
                   mb: 2,
-                  fontWeight: 500
+                  fontWeight: 500,
+                  fontSize: { xs: '1rem', md: '1.25rem' }
                 }}
               >
                 {t('heroSubtitle')}
@@ -135,7 +136,7 @@ export default function Home() {
               </Typography>
 
               {/* CTA Buttons */}
-              <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+              <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
                 <MotionBox
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
@@ -146,6 +147,7 @@ export default function Home() {
                     variant="contained"
                     size="large"
                     startIcon={<RocketLaunchIcon />}
+                    fullWidth
                     sx={{
                       background: 'linear-gradient(135deg, #FFD700, #FFA500)',
                       color: '#000',
@@ -169,6 +171,7 @@ export default function Home() {
                   <Button
                     variant="outlined"
                     size="large"
+                    fullWidth
                     sx={{
                       borderColor: '#FFD700',
                       color: '#FFD700',
@@ -190,13 +193,15 @@ export default function Home() {
 
           {/* 3D Miner Model */}
           <Grid item xs={12} md={6}>
-            <MinerModel3D active={true} height="500px" />
+            <Box sx={{ height: { xs: '300px', md: '500px' } }}>
+              <MinerModel3D active={true} />
+            </Box>
           </Grid>
         </Grid>
       </Container>
 
       {/* Stats Section */}
-      <Container maxWidth="lg" sx={{ py: 8 }}>
+      <Container maxWidth="lg" sx={{ py: { xs: 4, md: 8 }, px: { xs: 2, md: 3 } }}>
         <Grid container spacing={3}>
           {[
             { label: t('totalPower'), value: stats.totalPower, icon: <SecurityIcon />, color: '#00BFFF' },
@@ -222,7 +227,7 @@ export default function Home() {
                   <Box sx={{ color: stat.color, mb: 2 }}>
                     {stat.icon}
                   </Box>
-                  <Typography variant="h4" sx={{ color: stat.color, fontWeight: 900, mb: 1 }}>
+                  <Typography variant="h4" sx={{ color: stat.color, fontWeight: 900, mb: 1, fontSize: { xs: '1.5rem', md: '2rem' } }}>
                     {stat.value}
                   </Typography>
                   <Typography variant="body2" sx={{ color: '#B0C4DE' }}>
@@ -236,7 +241,7 @@ export default function Home() {
       </Container>
 
       {/* Background Story - Extended */}
-      <Container maxWidth="lg" sx={{ py: 8 }}>
+      <Container maxWidth="lg" sx={{ py: { xs: 4, md: 8 }, px: { xs: 2, md: 3 } }}>
         <MotionBox
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
@@ -246,7 +251,7 @@ export default function Home() {
             background: 'linear-gradient(135deg, rgba(0,31,63,0.8) 0%, rgba(0,15,30,0.9) 100%)',
             backdropFilter: 'blur(30px)',
             borderRadius: 5,
-            p: { xs: 4, md: 6 },
+            p: { xs: 3, md: 6 },
             border: '2px solid rgba(255, 215, 0, 0.3)',
             boxShadow: '0 20px 60px rgba(0, 191, 255, 0.3), inset 0 0 50px rgba(255, 215, 0, 0.05)',
             position: 'relative',
@@ -275,7 +280,7 @@ export default function Home() {
               mb: 4,
               textAlign: 'center',
               textShadow: '0 0 20px rgba(255, 215, 0, 0.5)',
-              fontSize: { xs: '2rem', md: '2.5rem' }
+              fontSize: { xs: '1.5rem', md: '2.5rem' }
             }}
           >
             {t('backgroundTitle')}
@@ -287,7 +292,7 @@ export default function Home() {
               color: '#E0E6ED',
               lineHeight: 2.2,
               textAlign: 'justify',
-              fontSize: { xs: '1rem', md: '1.1rem' },
+              fontSize: { xs: '0.9rem', md: '1.1rem' },
               mb: 4,
               textIndent: '2em',
               whiteSpace: 'pre-line'
@@ -305,7 +310,8 @@ export default function Home() {
                 fontWeight: 700,
                 mb: 3,
                 textAlign: 'center',
-                textShadow: '0 0 15px rgba(0, 191, 255, 0.5)'
+                textShadow: '0 0 15px rgba(0, 191, 255, 0.5)',
+                fontSize: { xs: '1.2rem', md: '1.5rem' }
               }}
             >
               {t('backgroundTitle2')}
@@ -340,7 +346,7 @@ export default function Home() {
                       bgcolor: '#FFD700',
                       boxShadow: '0 0 10px #FFD700'
                     }} />
-                    <Typography variant="body2" sx={{ color: '#B0C4DE', fontWeight: 500 }}>
+                    <Typography variant="body2" sx={{ color: '#B0C4DE', fontWeight: 500, fontSize: { xs: '0.85rem', md: '0.9rem' } }}>
                       {item}
                     </Typography>
                   </MotionBox>
@@ -350,13 +356,14 @@ export default function Home() {
           </Box>
 
           {/* CTA Buttons */}
-          <Box sx={{ display: 'flex', gap: 3, justifyContent: 'center', mt: 5, flexWrap: 'wrap' }}>
+          <Box sx={{ display: 'flex', gap: 3, justifyContent: 'center', mt: 5, flexDirection: { xs: 'column', sm: 'row' } }}>
             <MotionBox whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Button
                 component={Link}
                 to="/mining"
                 variant="contained"
                 size="large"
+                fullWidth
                 sx={{
                   background: 'linear-gradient(135deg, #FFD700, #FFA500)',
                   color: '#000',
@@ -378,6 +385,7 @@ export default function Home() {
               <Button
                 variant="outlined"
                 size="large"
+                fullWidth
                 sx={{
                   borderColor: '#00BFFF',
                   color: '#00BFFF',
@@ -402,7 +410,7 @@ export default function Home() {
       </Container>
 
       {/* Features Section */}
-      <Container maxWidth="lg" sx={{ py: 8 }}>
+      <Container maxWidth="lg" sx={{ py: { xs: 4, md: 8 }, px: { xs: 2, md: 3 } }}>
         <Typography
           variant="h3"
           sx={{
@@ -412,7 +420,8 @@ export default function Home() {
             background: 'linear-gradient(135deg, #FFD700 0%, #00BFFF 100%)',
             backgroundClip: 'text',
             WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent'
+            WebkitTextFillColor: 'transparent',
+            fontSize: { xs: '1.8rem', md: '3rem' }
           }}
         >
           {t('whyChoose')}
@@ -439,14 +448,14 @@ export default function Home() {
                   transition: 'all 0.3s ease'
                 }}
               >
-                <CardContent sx={{ textAlign: 'center', p: 4 }}>
+                <CardContent sx={{ textAlign: 'center', p: { xs: 3, md: 4 } }}>
                   <Box sx={{ color: feature.color, mb: 2 }}>
                     {feature.icon}
                   </Box>
-                  <Typography variant="h6" sx={{ color: feature.color, fontWeight: 700, mb: 2 }}>
+                  <Typography variant="h6" sx={{ color: feature.color, fontWeight: 700, mb: 2, fontSize: { xs: '1rem', md: '1.25rem' } }}>
                     {feature.title}
                   </Typography>
-                  <Typography variant="body2" sx={{ color: '#90A4AE', lineHeight: 1.8 }}>
+                  <Typography variant="body2" sx={{ color: '#90A4AE', lineHeight: 1.8, fontSize: { xs: '0.85rem', md: '0.875rem' } }}>
                     {feature.desc}
                   </Typography>
                 </CardContent>
@@ -457,14 +466,15 @@ export default function Home() {
       </Container>
 
       {/* Tokenomics Section */}
-      <Container maxWidth="md" sx={{ py: 8 }}>
+      <Container maxWidth="md" sx={{ py: { xs: 4, md: 8 }, px: { xs: 2, md: 3 } }}>
         <Typography
           variant="h3"
           sx={{
             fontWeight: 900,
             textAlign: 'center',
             mb: 6,
-            color: '#FFD700'
+            color: '#FFD700',
+            fontSize: { xs: '1.8rem', md: '3rem' }
           }}
         >
           {t('tokenomics')}
@@ -491,10 +501,10 @@ export default function Home() {
                   borderLeft: '4px solid #FFD700'
                 }}
               >
-                <Typography variant="body2" sx={{ color: '#90A4AE', mb: 0.5 }}>
+                <Typography variant="body2" sx={{ color: '#90A4AE', mb: 0.5, fontSize: { xs: '0.85rem', md: '0.875rem' } }}>
                   {item.label}
                 </Typography>
-                <Typography variant="h5" sx={{ color: '#FFD700', fontWeight: 700 }}>
+                <Typography variant="h5" sx={{ color: '#FFD700', fontWeight: 700, fontSize: { xs: '1.2rem', md: '1.5rem' } }}>
                   {item.value}
                 </Typography>
               </MotionBox>
