@@ -131,10 +131,9 @@ function Mining({ account }) {
         console.warn('⚠️ 无法计算算力：userPower=0, userMiners.length=', userMiners.length);
       }
 
-      const [totalPower, dailyReward] = await Promise.all([
-        mining.globalTotalPower, // 这是公开变量，不是函数，直接读取
-        mining.getDailyReward()
-      ]);
+      // 读取全网算力和每日奖励
+      const totalPower = await mining.globalTotalPower; // 公开变量
+      const dailyReward = await mining.getDailyReward(); // 函数调用
 
       console.log('⛏️ 挖矿统计:', {
         userPower: userPower.toString(),
