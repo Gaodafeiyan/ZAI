@@ -17,13 +17,31 @@ function Mining({ account }) {
     unlockable: '0',
     totalLocked: '0'
   });
+  const [miningStats, setMiningStats] = useState({
+    userPower: '0',
+    totalPower: '0',
+    rewardsPerSecond: '0'
+  });
+  const [realtimeRewards, setRealtimeRewards] = useState(0);
 
   useEffect(() => {
     if (account) {
       loadMiners();
       loadRewards();
+      loadMiningStats();
     }
   }, [account]);
+
+  // 实时更新挖矿收益
+  useEffect(() => {
+    if (!account || parseFloat(miningStats.rewardsPerSecond) <= 0) return;
+
+    const interval = setInterval(() => {
+      setRealtimeRewards(prev => prev + parseFloat(miningStats.rewardsPerSecond));
+    }, 1000); // 每秒更新
+
+    return () => clearInterval(interval);
+  }, [account, miningStats.rewardsPerSecond]);
 
   const loadMiners = async () => {
     try {
@@ -64,8 +82,46 @@ function Mining({ account }) {
         unlockable: formatToken(unlockable),
         totalLocked: formatToken(totalLockedAmount)
       });
+
+      // 初始化实时奖励为当前待领取奖励
+      setRealtimeRewards(parseFloat(formatToken(pending)));
     } catch (error) {
       console.error('Load rewards error:', error);
+    }
+  };
+
+  const loadMiningStats = async () => {
+    try {
+      const { mining } = await getContracts();
+      const [userPower, totalPower, dailyReward] = await Promise.all([
+        mining.getUserTotalPower(account),
+        mining.globalTotalPower(),
+        mining.getCurrentDailyReward()
+      ]);
+
+      console.log('⛏️ 挖矿统计:', {
+        userPower: userPower.toString(),
+        totalPower: totalPower.toString(),
+        dailyReward: dailyReward.toString()
+      });
+
+      // 计算每秒产出：(用户算力 / 全网算力) * 每日奖励 / 86400秒
+      let rewardsPerSecond = '0';
+      if (totalPower > 0n && userPower > 0n) {
+        // 每秒产出 = (用户算力 / 全网算力) * (每日奖励 / 86400)
+        const userShare = (userPower * 1000000n) / totalPower; // 放大100万倍避免精度丢失
+        const secondlyReward = dailyReward / 86400n; // 每日奖励除以86400秒
+        const userRewardPerSecond = (secondlyReward * userShare) / 1000000n;
+        rewardsPerSecond = formatToken(userRewardPerSecond);
+      }
+
+      setMiningStats({
+        userPower: formatToken(userPower),
+        totalPower: formatToken(totalPower),
+        rewardsPerSecond: rewardsPerSecond
+      });
+    } catch (error) {
+      console.error('Load mining stats error:', error);
     }
   };
 
@@ -98,6 +154,7 @@ function Mining({ account }) {
       toast.success('算力节点购买成功！');
       loadMiners();
       loadRewards();
+      loadMiningStats();
       setBuyAmount('500');
     } catch (error) {
       console.error('Buy miner error:', error);
@@ -178,6 +235,62 @@ function Mining({ account }) {
       <Typography variant="h3" sx={{ mb: 4, color: '#FFD700', fontWeight: 700 }}>
         {t('mining')}中心
       </Typography>
+
+      {/* Real-time Mining Display */}
+      {parseFloat(miningStats.userPower) > 0 && (
+        <Card
+          className="financial-card"
+          sx={{
+            mb: 4,
+            background: 'linear-gradient(135deg, rgba(255,215,0,0.1) 0%, rgba(255,165,0,0.05) 100%)',
+            border: '2px solid rgba(255, 215, 0, 0.3)'
+          }}
+        >
+          <CardContent sx={{ p: 4 }}>
+            <Grid container spacing={3} alignItems="center">
+              <Grid item xs={12} md={4}>
+                <Box sx={{ textAlign: 'center' }}>
+                  <Typography variant="h6" sx={{ color: '#B0C4DE', mb: 1 }}>
+                    ⚡ 您的算力
+                  </Typography>
+                  <Typography variant="h4" sx={{ color: '#FFD700', fontWeight: 700 }}>
+                    {parseFloat(miningStats.userPower).toLocaleString()}
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: '#90A4AE' }}>
+                    占全网 {miningStats.totalPower > 0 ? ((parseFloat(miningStats.userPower) / parseFloat(miningStats.totalPower)) * 100).toFixed(4) : '0'}%
+                  </Typography>
+                </Box>
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <Box sx={{ textAlign: 'center' }}>
+                  <Typography variant="h6" sx={{ color: '#B0C4DE', mb: 1 }}>
+                    ⛏️ 实时产出
+                  </Typography>
+                  <Typography variant="h3" sx={{ color: '#00E676', fontWeight: 700 }}>
+                    {realtimeRewards.toFixed(8)}
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: '#90A4AE' }}>
+                    ZAI (实时累计)
+                  </Typography>
+                </Box>
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <Box sx={{ textAlign: 'center' }}>
+                  <Typography variant="h6" sx={{ color: '#B0C4DE', mb: 1 }}>
+                    🚀 挖矿速度
+                  </Typography>
+                  <Typography variant="h4" sx={{ color: '#00BFFF', fontWeight: 700 }}>
+                    {parseFloat(miningStats.rewardsPerSecond).toFixed(8)}
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: '#90A4AE' }}>
+                    ZAI / 秒
+                  </Typography>
+                </Box>
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Rewards Summary */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
