@@ -26,11 +26,15 @@ function Mining({ account }) {
 
   useEffect(() => {
     if (account) {
-      loadMiners();
-      loadRewards();
-      loadMiningStats();
+      loadData();
     }
   }, [account]);
+
+  const loadData = async () => {
+    const userMiners = await loadMiners(); // 先加载矿机，获取矿机列表
+    await loadRewards();
+    await loadMiningStats(userMiners); // 传入矿机列表
+  };
 
   // 实时更新挖矿收益
   useEffect(() => {
@@ -48,8 +52,11 @@ function Mining({ account }) {
       const { mining } = await getContracts();
       const userMiners = await mining.getUserMiners(account);
       setMiners(userMiners);
+      console.log('✅ 加载矿机成功，数量:', userMiners.length);
+      return userMiners; // 返回矿机列表供后续使用
     } catch (error) {
       console.error('Load miners error:', error);
+      return [];
     }
   };
 
@@ -90,7 +97,7 @@ function Mining({ account }) {
     }
   };
 
-  const loadMiningStats = async () => {
+  const loadMiningStats = async (userMiners = []) => {
     try {
       const { mining } = await getContracts();
 
@@ -104,11 +111,12 @@ function Mining({ account }) {
       }
 
       // 方法2: 如果合约返回0，从矿机列表手动计算
-      if (userPower === 0n && miners.length > 0) {
-        console.log('📊 从矿机列表计算算力...');
-        for (let i = 0; i < miners.length; i++) {
-          if (miners[i].active) {
-            userPower += miners[i].powerLevel;
+      if (userPower === 0n && userMiners.length > 0) {
+        console.log('📊 从矿机列表计算算力，矿机数量:', userMiners.length);
+        for (let i = 0; i < userMiners.length; i++) {
+          console.log(`矿机 #${i+1}: powerLevel=${userMiners[i].powerLevel.toString()}, active=${userMiners[i].active}`);
+          if (userMiners[i].active) {
+            userPower += userMiners[i].powerLevel;
           }
         }
         console.log('✅ 计算得到用户算力:', userPower.toString());
@@ -179,9 +187,7 @@ function Mining({ account }) {
       await buyTx.wait();
 
       toast.success('算力节点购买成功！');
-      loadMiners();
-      loadRewards();
-      loadMiningStats();
+      await loadData(); // 重新加载所有数据
       setBuyAmount('500');
     } catch (error) {
       console.error('Buy miner error:', error);
