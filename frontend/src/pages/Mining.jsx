@@ -477,7 +477,7 @@ function Mining({ account }) {
                   算力节点 #{index + 1}
                 </Typography>
                 <Typography variant="body2" sx={{ color: '#B0B8C4', mt: 1 }}>
-                  {t('powerLevel')}: {formatToken(miner.powerLevel)} ZAI
+                  能量: {parseFloat(formatToken(miner.powerLevel)).toFixed(0)}
                 </Typography>
                 <Typography variant="body2" sx={{ color: '#B0B8C4' }}>
                   状态: {miner.active ? '✅ ' + t('active') : '❌ ' + t('inactive')}
