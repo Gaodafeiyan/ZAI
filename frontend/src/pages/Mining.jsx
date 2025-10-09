@@ -39,49 +39,30 @@ function Mining({ account }) {
     await loadMiningStats(userMiners); // 传入矿机列表
   };
 
-  // 前端每秒模拟累加（视觉效果）
-  useEffect(() => {
-    if (!account || !miningStats.rewardsPerSecond || parseFloat(miningStats.rewardsPerSecond) <= 0) return;
-
-    console.log('✅ 启动前端实时累加，每秒增加', miningStats.rewardsPerSecond, 'ZAI');
-
-    const tickInterval = setInterval(() => {
-      setRewards(prev => {
-        const newPending = (parseFloat(prev.pending) + parseFloat(miningStats.rewardsPerSecond)).toString();
-        console.log('⏱️ 前端累加:', prev.pending, '→', parseFloat(newPending).toFixed(8));
-        return {
-          ...prev,
-          pending: newPending
-        };
-      });
-    }, 1000); // 每秒累加
-
-    return () => {
-      console.log('❌ 清除前端累加');
-      clearInterval(tickInterval);
-    };
-  }, [account, miningStats.rewardsPerSecond]);
-
-  // 定期从合约校准数据（每30秒）
+  // 定期从合约同步真实数据（每3秒）
   useEffect(() => {
     if (!account) return;
 
-    console.log('✅ 启动定时校准，每30秒执行一次');
+    console.log('✅ 启动合约实时同步，每3秒从合约读取真实数据');
 
     const syncInterval = setInterval(async () => {
-      console.log('🔄 从合约校准数据...', new Date().toLocaleTimeString());
+      const timestamp = new Date().toLocaleTimeString();
       try {
         const { mining } = await getContracts();
         const currentMiners = await mining.getUserMiners(account);
-        await loadRewards(); // 用合约真实值校准
-        await loadMiningStats(currentMiners); // 刷新挖矿统计
+
+        // 同步所有数据
+        await loadRewards(); // 真实的待领取奖励
+        await loadMiningStats(currentMiners); // 挖矿统计
+
+        console.log('🔄 合约数据已同步', timestamp);
       } catch (error) {
-        console.error('校准数据失败:', error);
+        console.error('同步失败:', error);
       }
-    }, 30000); // 每30秒校准一次
+    }, 3000); // 每3秒同步一次（BSC 平均出块时间）
 
     return () => {
-      console.log('❌ 清除定时校准');
+      console.log('❌ 停止合约同步');
       clearInterval(syncInterval);
     };
   }, [account]);
@@ -363,7 +344,7 @@ function Mining({ account }) {
                     {parseFloat(rewards.pending).toFixed(4)}
                   </Typography>
                   <Typography variant="caption" sx={{ color: '#90A4AE' }}>
-                    ZAI (实时增长)
+                    ZAI (每3秒同步)
                   </Typography>
                 </Box>
               </Grid>
