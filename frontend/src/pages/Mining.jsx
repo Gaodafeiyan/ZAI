@@ -39,18 +39,29 @@ function Mining({ account }) {
     await loadMiningStats(userMiners); // 传入矿机列表
   };
 
-  // 实时同步合约数据（每10秒）
+  // 实时同步合约数据（每5秒）
   useEffect(() => {
     if (!account) return;
 
-    const syncInterval = setInterval(async () => {
-      console.log('🔄 同步合约数据...');
-      await loadRewards(); // 刷新待领取奖励
-      await loadMiningStats(miners); // 刷新挖矿统计
-    }, 10000); // 每10秒同步一次
+    console.log('✅ 启动定时同步，每5秒执行一次');
 
-    return () => clearInterval(syncInterval);
-  }, [account, miners]);
+    const syncInterval = setInterval(async () => {
+      console.log('🔄 同步合约数据...', new Date().toLocaleTimeString());
+      try {
+        const { mining } = await getContracts();
+        const currentMiners = await mining.getUserMiners(account);
+        await loadRewards(); // 刷新待领取奖励
+        await loadMiningStats(currentMiners); // 刷新挖矿统计
+      } catch (error) {
+        console.error('同步数据失败:', error);
+      }
+    }, 5000); // 每5秒同步一次
+
+    return () => {
+      console.log('❌ 清除定时同步');
+      clearInterval(syncInterval);
+    };
+  }, [account]); // 只依赖 account，不依赖 miners
 
   const loadMiners = async () => {
     try {
