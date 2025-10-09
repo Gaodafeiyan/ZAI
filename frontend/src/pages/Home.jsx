@@ -235,28 +235,169 @@ export default function Home() {
         </Grid>
       </Container>
 
-      {/* Background Story */}
-      <Container maxWidth="md" sx={{ py: 8 }}>
+      {/* Background Story - Extended */}
+      <Container maxWidth="lg" sx={{ py: 8 }}>
         <MotionBox
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           transition={{ duration: 1 }}
           viewport={{ once: true }}
           sx={{
-            background: 'linear-gradient(135deg, rgba(0,191,255,0.1) 0%, rgba(255,215,0,0.1) 100%)',
-            backdropFilter: 'blur(20px)',
-            borderRadius: 4,
-            p: 5,
-            border: '1px solid rgba(255, 215, 0, 0.2)',
-            boxShadow: '0 10px 40px rgba(0, 191, 255, 0.2)'
+            background: 'linear-gradient(135deg, rgba(0,31,63,0.8) 0%, rgba(0,15,30,0.9) 100%)',
+            backdropFilter: 'blur(30px)',
+            borderRadius: 5,
+            p: { xs: 4, md: 6 },
+            border: '2px solid rgba(255, 215, 0, 0.3)',
+            boxShadow: '0 20px 60px rgba(0, 191, 255, 0.3), inset 0 0 50px rgba(255, 215, 0, 0.05)',
+            position: 'relative',
+            overflow: 'hidden',
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: '4px',
+              background: 'linear-gradient(90deg, #FFD700, #00BFFF, #FFD700)',
+              animation: 'shimmer 3s infinite'
+            },
+            '@keyframes shimmer': {
+              '0%': { backgroundPosition: '-200% 0' },
+              '100%': { backgroundPosition: '200% 0' }
+            }
           }}
         >
-          <Typography variant="h4" sx={{ color: '#FFD700', fontWeight: 900, mb: 3, textAlign: 'center' }}>
+          <Typography
+            variant="h3"
+            sx={{
+              color: '#FFD700',
+              fontWeight: 900,
+              mb: 4,
+              textAlign: 'center',
+              textShadow: '0 0 20px rgba(255, 215, 0, 0.5)',
+              fontSize: { xs: '2rem', md: '2.5rem' }
+            }}
+          >
             {t('backgroundTitle')}
           </Typography>
-          <Typography variant="body1" sx={{ color: '#B0C4DE', lineHeight: 2, textAlign: 'center' }}>
+
+          <Typography
+            variant="body1"
+            sx={{
+              color: '#E0E6ED',
+              lineHeight: 2.2,
+              textAlign: 'justify',
+              fontSize: { xs: '1rem', md: '1.1rem' },
+              mb: 4,
+              textIndent: '2em',
+              whiteSpace: 'pre-line'
+            }}
+          >
             {t('backgroundDesc')}
           </Typography>
+
+          {/* Innovation Highlights */}
+          <Box sx={{ mt: 5 }}>
+            <Typography
+              variant="h5"
+              sx={{
+                color: '#00BFFF',
+                fontWeight: 700,
+                mb: 3,
+                textAlign: 'center',
+                textShadow: '0 0 15px rgba(0, 191, 255, 0.5)'
+              }}
+            >
+              {t('backgroundTitle2')}
+            </Typography>
+            <Grid container spacing={2}>
+              {t('backgroundDesc2').split('\n').map((item, index) => (
+                <Grid item xs={12} md={6} key={index}>
+                  <MotionBox
+                    initial={{ opacity: 0, x: index % 2 === 0 ? -20 : 20 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.5, delay: index * 0.1 }}
+                    viewport={{ once: true }}
+                    sx={{
+                      background: 'linear-gradient(90deg, rgba(0,191,255,0.1) 0%, transparent 100%)',
+                      p: 2,
+                      borderRadius: 2,
+                      borderLeft: '3px solid #00BFFF',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
+                      transition: 'all 0.3s',
+                      '&:hover': {
+                        background: 'linear-gradient(90deg, rgba(0,191,255,0.2) 0%, rgba(255,215,0,0.1) 100%)',
+                        transform: 'translateX(10px)'
+                      }
+                    }}
+                  >
+                    <Box sx={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      bgcolor: '#FFD700',
+                      boxShadow: '0 0 10px #FFD700'
+                    }} />
+                    <Typography variant="body2" sx={{ color: '#B0C4DE', fontWeight: 500 }}>
+                      {item}
+                    </Typography>
+                  </MotionBox>
+                </Grid>
+              ))}
+            </Grid>
+          </Box>
+
+          {/* CTA Buttons */}
+          <Box sx={{ display: 'flex', gap: 3, justifyContent: 'center', mt: 5, flexWrap: 'wrap' }}>
+            <MotionBox whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button
+                component={Link}
+                to="/mining"
+                variant="contained"
+                size="large"
+                sx={{
+                  background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+                  color: '#000',
+                  fontWeight: 700,
+                  px: 5,
+                  py: 1.5,
+                  borderRadius: 3,
+                  boxShadow: '0 10px 30px rgba(255, 215, 0, 0.5)',
+                  '&:hover': {
+                    background: 'linear-gradient(135deg, #FFA500, #FF8C00)',
+                    boxShadow: '0 15px 40px rgba(255, 215, 0, 0.7)',
+                  }
+                }}
+              >
+                开启算力挖矿
+              </Button>
+            </MotionBox>
+            <MotionBox whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button
+                variant="outlined"
+                size="large"
+                sx={{
+                  borderColor: '#00BFFF',
+                  color: '#00BFFF',
+                  fontWeight: 700,
+                  px: 5,
+                  py: 1.5,
+                  borderRadius: 3,
+                  borderWidth: 2,
+                  '&:hover': {
+                    borderColor: '#FFD700',
+                    color: '#FFD700',
+                    bgcolor: 'rgba(255, 215, 0, 0.1)',
+                    borderWidth: 2,
+                  }
+                }}
+              >
+                下载白皮书
+              </Button>
+            </MotionBox>
+          </Box>
         </MotionBox>
       </Container>
 

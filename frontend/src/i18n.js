@@ -29,14 +29,14 @@ const resources = {
 
       // Why Choose
       whyChoose: '为什么选择 Zenithus',
-      longTerm: '30 年长周期',
-      longTermDesc: '9M ZAI 分 30 年释放，衰减率 0.9999636，每年燃烧 12.55% 流通量',
-      transparent: '透明经济',
-      transparentDesc: '所有合约开源可验证，实时链上数据，无中心化控制',
-      referralSystem: '三级推荐',
-      referralSystemDesc: '5%/3%/1% 推荐奖励，需活跃 >30 天，单笔上限 10%',
-      lowEntry: '低门槛入场',
-      lowEntryDesc: '500 ZAI 购买虚拟矿机，算力 1:1，无需实体设备',
+      longTerm: '30 年长周期生态',
+      longTermDesc: '9M ZAI 奖励池，30 年（10,950 天）持续释放。初始每日 328 ZAI，衰减率 0.9999636，确保长期稳定。创新通缩机制：每年销毁 12.55% 流通供应，持续增值。',
+      transparent: '透明双轨奖励',
+      transparentDesc: '链上开源可验证，无中心化控制。奖励分配：70% 立即可领取，30% 锁定 30 天后释放，平衡短期收益与长期持有激励。',
+      referralSystem: '三级推荐激励',
+      referralSystemDesc: '推荐奖励：一级 5%、二级 3%、三级 1%。要求：推荐人需活跃 >30 天。保护机制：单笔奖励上限 10%，防止过度激励。',
+      lowEntry: 'AI 算力 1:1',
+      lowEntryDesc: '仅需 500 ZAI 启动虚拟矿机，算力与质押 1:1 对应。纯算法驱动，无需昂贵硬件和高额电费，人人可参与量子 AI 生态。',
 
       // Mining
       buyMiner: '购买矿机',
@@ -93,8 +93,10 @@ const resources = {
       circulatingSupply: '流通供应',
 
       // Background Story
-      backgroundTitle: 'Zenith 事件',
-      backgroundDesc: '2024年，一次量子计算突破（Zenith事件）催生了革命性的AI算法。Zenithus协议将这一算法封装为虚拟矿机，通过分布式网络共享算力，创造价值。每个矿机代表一份算力贡献，获得ZAI代币奖励。',
+      backgroundTitle: 'Zenith 事件：量子 AI 算力革命',
+      backgroundDesc: '2024 年 11 月，全球量子计算领域发生了震撼性突破——Zenith 事件。一组顶尖科学家团队利用量子纠缠特性，成功开发出革命性的分布式量子 AI 算法，该算法能够以前所未有的效率处理复杂计算任务，为人工智能发展开辟了全新维度。\n\nZenithus 协议应运而生，将这一划时代的量子 AI 算法封装为虚拟算力矿机系统。不同于传统挖矿依赖实体硬件的高能耗模式，Zenithus 采用纯算法驱动的虚拟矿机机制：每个矿机代表对量子 AI 网络的真实算力贡献，参与者通过质押 ZAI 代币获得算力份额，为全球 AI 计算任务提供分布式算力支持，并按贡献获得 ZAI 奖励。\n\n这是一场真正的算力革命——无需高昂硬件投入，无需巨额电力消耗，仅需 500 ZAI 即可启动虚拟矿机，以 1:1 算力比例参与全球量子 AI 生态建设。Zenithus 通过创新的通缩机制（年度销毁 12.55% 流通量）、三级推荐激励（5%/3%/1%，需活跃 >30 天）、以及双轨奖励模式（70% 立即释放 + 30% 锁定 30 天），构建了一个可持续 30 年的长期价值生态。\n\n加入 Zenithus，不仅是投资，更是参与构建未来量子 AI 基础设施，共享人工智能时代的红利。',
+      backgroundTitle2: '革命性创新',
+      backgroundDesc2: '• 量子 AI 算法驱动，真实算力贡献\n• 虚拟矿机机制，无需实体硬件\n• 30 年长周期，可持续发展\n• 通缩 + 推荐 + 销毁三重机制\n• BSC 链上透明，无中心化控制',
 
       // Messages
       walletConnected: '钱包已连接',
