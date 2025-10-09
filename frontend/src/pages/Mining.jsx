@@ -305,7 +305,7 @@ function Mining({ account }) {
             </Button>
           </Box>
           <Typography variant="caption" sx={{ color: '#B0B8C4', display: 'block', mt: 1 }}>
-            最低: 500 ZAI | 手续费: 10% (50% 销毁 + 30% 营销 + 20% 运营)
+            最低: 500 ZAI
           </Typography>
         </CardContent>
       </Card>
