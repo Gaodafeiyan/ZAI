@@ -405,8 +405,8 @@ function Mining({ account }) {
   }
 
   return (
-    <Container maxWidth="lg" sx={{ py: 8 }}>
-      <Typography variant="h3" sx={{ mb: 4, color: '#FFD700', fontWeight: 700 }}>
+    <Container maxWidth="lg" sx={{ py: { xs: 2, md: 8 }, px: { xs: 2, md: 3 } }}>
+      <Typography variant="h3" sx={{ mb: { xs: 2, md: 4 }, color: '#FFD700', fontWeight: 700, fontSize: { xs: '1.75rem', md: '3rem' } }}>
         {t('mining')}中心
       </Typography>
 
@@ -421,48 +421,48 @@ function Mining({ account }) {
             border: '2px solid rgba(255, 215, 0, 0.3)'
           }}
         >
-          <CardContent sx={{ p: 4 }}>
+          <CardContent sx={{ p: { xs: 2, md: 4 } }}>
             <Grid container spacing={2} alignItems="center">
-              <Grid item xs={12} md={3}>
+              <Grid item xs={6} sm={6} md={3}>
                 <Box sx={{ textAlign: 'center' }}>
-                  <Typography variant="body2" sx={{ color: '#B0C4DE', mb: 0.5 }}>
+                  <Typography variant="body2" sx={{ color: '#B0C4DE', mb: 0.5, fontSize: { xs: '0.75rem', md: '0.875rem' } }}>
                     ⚡ 您的算力
                   </Typography>
-                  <Typography variant="h5" sx={{ color: '#FFD700', fontWeight: 700 }}>
+                  <Typography variant="h5" sx={{ color: '#FFD700', fontWeight: 700, fontSize: { xs: '1.2rem', md: '1.5rem' } }}>
                     {parseFloat(miningStats.userPower).toLocaleString()}
                   </Typography>
-                  <Typography variant="caption" sx={{ color: '#90A4AE' }}>
+                  <Typography variant="caption" sx={{ color: '#90A4AE', fontSize: { xs: '0.65rem', md: '0.75rem' } }}>
                     占全网 {miningStats.totalPower > 0 ? ((parseFloat(miningStats.userPower) / parseFloat(miningStats.totalPower)) * 100).toFixed(2) : '0'}%
                   </Typography>
                 </Box>
               </Grid>
-              <Grid item xs={12} md={3}>
+              <Grid item xs={6} sm={6} md={3}>
                 <Box sx={{ textAlign: 'center' }}>
-                  <Typography variant="body2" sx={{ color: '#B0C4DE', mb: 0.5 }}>
+                  <Typography variant="body2" sx={{ color: '#B0C4DE', mb: 0.5, fontSize: { xs: '0.75rem', md: '0.875rem' } }}>
                     ⛏️ 待领取奖励
                   </Typography>
-                  <Typography variant="h5" sx={{ color: '#00E676', fontWeight: 700 }}>
+                  <Typography variant="h5" sx={{ color: '#00E676', fontWeight: 700, fontSize: { xs: '1.2rem', md: '1.5rem' } }}>
                     {parseFloat(displayPending).toFixed(4)}
                   </Typography>
-                  <Typography variant="caption" sx={{ color: '#90A4AE' }}>
+                  <Typography variant="caption" sx={{ color: '#90A4AE', fontSize: { xs: '0.65rem', md: '0.75rem' } }}>
                     ZAI (实时增长)
                   </Typography>
                 </Box>
               </Grid>
-              <Grid item xs={12} md={3}>
+              <Grid item xs={6} sm={6} md={3}>
                 <Box sx={{ textAlign: 'center' }}>
-                  <Typography variant="body2" sx={{ color: '#B0C4DE', mb: 0.5 }}>
+                  <Typography variant="body2" sx={{ color: '#B0C4DE', mb: 0.5, fontSize: { xs: '0.75rem', md: '0.875rem' } }}>
                     🚀 挖矿速度
                   </Typography>
-                  <Typography variant="h5" sx={{ color: '#00BFFF', fontWeight: 700 }}>
+                  <Typography variant="h5" sx={{ color: '#00BFFF', fontWeight: 700, fontSize: { xs: '1.2rem', md: '1.5rem' } }}>
                     {parseFloat(miningStats.rewardsPerSecond).toFixed(8)}
                   </Typography>
-                  <Typography variant="caption" sx={{ color: '#90A4AE' }}>
+                  <Typography variant="caption" sx={{ color: '#90A4AE', fontSize: { xs: '0.65rem', md: '0.75rem' } }}>
                     ZAI / 秒
                   </Typography>
                 </Box>
               </Grid>
-              <Grid item xs={12} md={3}>
+              <Grid item xs={6} sm={6} md={3}>
                 <Box sx={{ textAlign: 'center' }}>
                   <Typography variant="body2" sx={{ color: '#B0C4DE', mb: 0.5 }}>
                     📅 今日产出
@@ -523,50 +523,50 @@ function Mining({ account }) {
       )}
 
       {/* Rewards Summary */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} md={3}>
+      <Grid container spacing={{ xs: 2, md: 3 }} sx={{ mb: { xs: 2, md: 4 } }}>
+        <Grid item xs={6} sm={6} md={3}>
           <Card className="financial-card" key={`pending-${displayPending}`}>
-            <CardContent>
-              <Typography variant="h5" sx={{ color: '#FFD700', fontWeight: 700, fontSize: '1.8rem' }}>
+            <CardContent sx={{ p: { xs: 2, md: 3 } }}>
+              <Typography variant="h5" sx={{ color: '#FFD700', fontWeight: 700, fontSize: { xs: '1.2rem', md: '1.8rem' } }}>
                 {parseFloat(displayPending).toFixed(4)}
               </Typography>
-              <Typography variant="caption" sx={{ color: '#B0B8C4' }}>
+              <Typography variant="caption" sx={{ color: '#B0B8C4', fontSize: { xs: '0.7rem', md: '0.75rem' } }}>
                 待领取奖励 ZAI (70%)
               </Typography>
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} md={3}>
+        <Grid item xs={6} sm={6} md={3}>
           <Card className="financial-card">
-            <CardContent>
-              <Typography variant="h5" sx={{ color: '#FFD700', fontWeight: 700, fontSize: '1.8rem' }}>
+            <CardContent sx={{ p: { xs: 2, md: 3 } }}>
+              <Typography variant="h5" sx={{ color: '#FFD700', fontWeight: 700, fontSize: { xs: '1.2rem', md: '1.8rem' } }}>
                 {parseFloat(rewards.totalLocked).toFixed(4)}
               </Typography>
-              <Typography variant="caption" sx={{ color: '#B0B8C4' }}>
+              <Typography variant="caption" sx={{ color: '#B0B8C4', fontSize: { xs: '0.7rem', md: '0.75rem' } }}>
                 锁定中奖励 ZAI (30%)
               </Typography>
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} md={3}>
+        <Grid item xs={6} sm={6} md={3}>
           <Card className="financial-card">
-            <CardContent>
-              <Typography variant="h5" sx={{ color: '#FFD700', fontWeight: 700, fontSize: '1.8rem' }}>
+            <CardContent sx={{ p: { xs: 2, md: 3 } }}>
+              <Typography variant="h5" sx={{ color: '#FFD700', fontWeight: 700, fontSize: { xs: '1.2rem', md: '1.8rem' } }}>
                 {parseFloat(rewards.unlockable).toFixed(4)}
               </Typography>
-              <Typography variant="caption" sx={{ color: '#B0B8C4' }}>
+              <Typography variant="caption" sx={{ color: '#B0B8C4', fontSize: { xs: '0.7rem', md: '0.75rem' } }}>
                 可解锁奖励 ZAI
               </Typography>
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} md={3}>
+        <Grid item xs={6} sm={6} md={3}>
           <Card className="financial-card">
-            <CardContent>
-              <Typography variant="h5" sx={{ color: '#FFD700', fontWeight: 700, fontSize: '1.8rem' }}>
+            <CardContent sx={{ p: { xs: 2, md: 3 } }}>
+              <Typography variant="h5" sx={{ color: '#FFD700', fontWeight: 700, fontSize: { xs: '1.2rem', md: '1.8rem' } }}>
                 {rewards.locked}
               </Typography>
-              <Typography variant="caption" sx={{ color: '#B0B8C4' }}>
+              <Typography variant="caption" sx={{ color: '#B0B8C4', fontSize: { xs: '0.7rem', md: '0.75rem' } }}>
                 锁定条目数量
               </Typography>
             </CardContent>
@@ -575,12 +575,12 @@ function Mining({ account }) {
       </Grid>
 
       {/* Claim Rewards */}
-      <Card className="financial-card" sx={{ mb: 4 }}>
-        <CardContent sx={{ p: 4 }}>
-          <Typography variant="h5" sx={{ mb: 3, color: '#FFD700' }}>
+      <Card className="financial-card" sx={{ mb: { xs: 2, md: 4 } }}>
+        <CardContent sx={{ p: { xs: 2, md: 4 } }}>
+          <Typography variant="h5" sx={{ mb: { xs: 2, md: 3 }, color: '#FFD700', fontSize: { xs: '1.2rem', md: '1.5rem' } }}>
             {t('claimRewards')}
           </Typography>
-          <Box sx={{ display: 'flex', gap: 2 }}>
+          <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
             <Button
               variant="contained"
               onClick={handleClaimRewards}
@@ -590,7 +590,8 @@ function Mining({ account }) {
                 background: 'linear-gradient(135deg, #00E676, #00C853)',
                 color: '#001F3F',
                 fontWeight: 700,
-                py: 1.5
+                py: { xs: 1.2, md: 1.5 },
+                fontSize: { xs: '0.85rem', md: '1rem' }
               }}
             >
               {claimLoading ? t('loading') : `领取待领取奖励 (${parseFloat(displayPending).toFixed(2)} ZAI)`}
@@ -604,13 +605,14 @@ function Mining({ account }) {
                 background: 'linear-gradient(135deg, #FFD700, #FFC700)',
                 color: '#001F3F',
                 fontWeight: 700,
-                py: 1.5
+                py: { xs: 1.2, md: 1.5 },
+                fontSize: { xs: '0.85rem', md: '1rem' }
               }}
             >
               {unlockLoading ? t('loading') : `解锁奖励 (${parseFloat(rewards.unlockable).toFixed(2)} ZAI)`}
             </Button>
           </Box>
-          <Typography variant="caption" sx={{ color: '#B0B8C4', display: 'block', mt: 2 }}>
+          <Typography variant="caption" sx={{ color: '#B0B8C4', display: 'block', mt: 2, fontSize: { xs: '0.7rem', md: '0.75rem' } }}>
             💡 奖励分配：70% 立即可领取，30% 锁定 30 天后可解锁
           </Typography>
         </CardContent>
