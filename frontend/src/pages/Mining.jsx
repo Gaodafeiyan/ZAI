@@ -184,7 +184,7 @@ function Mining({ account }) {
         <Grid item xs={12} md={3}>
           <Card className="financial-card">
             <CardContent>
-              <Typography variant="h5" className="gold-text">
+              <Typography variant="h5" sx={{ color: '#FFD700', fontWeight: 700, fontSize: '1.8rem' }}>
                 {parseFloat(rewards.pending).toFixed(4)}
               </Typography>
               <Typography variant="caption" sx={{ color: '#B0B8C4' }}>
@@ -196,7 +196,7 @@ function Mining({ account }) {
         <Grid item xs={12} md={3}>
           <Card className="financial-card">
             <CardContent>
-              <Typography variant="h5" className="gold-text">
+              <Typography variant="h5" sx={{ color: '#FFD700', fontWeight: 700, fontSize: '1.8rem' }}>
                 {parseFloat(rewards.totalLocked).toFixed(4)}
               </Typography>
               <Typography variant="caption" sx={{ color: '#B0B8C4' }}>
@@ -208,7 +208,7 @@ function Mining({ account }) {
         <Grid item xs={12} md={3}>
           <Card className="financial-card">
             <CardContent>
-              <Typography variant="h5" className="gold-text">
+              <Typography variant="h5" sx={{ color: '#FFD700', fontWeight: 700, fontSize: '1.8rem' }}>
                 {parseFloat(rewards.unlockable).toFixed(4)}
               </Typography>
               <Typography variant="caption" sx={{ color: '#B0B8C4' }}>
@@ -220,7 +220,7 @@ function Mining({ account }) {
         <Grid item xs={12} md={3}>
           <Card className="financial-card">
             <CardContent>
-              <Typography variant="h5" className="gold-text">
+              <Typography variant="h5" sx={{ color: '#FFD700', fontWeight: 700, fontSize: '1.8rem' }}>
                 {rewards.locked}
               </Typography>
               <Typography variant="caption" sx={{ color: '#B0B8C4' }}>
