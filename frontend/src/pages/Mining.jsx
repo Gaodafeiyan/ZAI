@@ -93,10 +93,30 @@ function Mining({ account }) {
   const loadMiningStats = async () => {
     try {
       const { mining } = await getContracts();
-      const [userPower, totalPower, dailyReward] = await Promise.all([
-        mining.getUserTotalPower(account),
-        mining.globalTotalPower(), // 这是公开变量，直接读取
-        mining.getDailyReward() // 正确的函数名
+
+      // 方法1: 从合约读取
+      let userPower = 0n;
+      try {
+        userPower = await mining.getUserTotalPower(account);
+        console.log('✅ 从合约读取用户算力:', userPower.toString());
+      } catch (e) {
+        console.warn('⚠️ 无法从合约读取算力，尝试从矿机列表计算');
+      }
+
+      // 方法2: 如果合约返回0，从矿机列表手动计算
+      if (userPower === 0n && miners.length > 0) {
+        console.log('📊 从矿机列表计算算力...');
+        for (let i = 0; i < miners.length; i++) {
+          if (miners[i].active) {
+            userPower += miners[i].powerLevel;
+          }
+        }
+        console.log('✅ 计算得到用户算力:', userPower.toString());
+      }
+
+      const [totalPower, dailyReward] = await Promise.all([
+        mining.globalTotalPower(),
+        mining.getDailyReward()
       ]);
 
       console.log('⛏️ 挖矿统计:', {
