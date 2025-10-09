@@ -521,7 +521,7 @@ function Mining({ account }) {
           <Card className="financial-card">
             <CardContent>
               <Typography variant="h5" sx={{ color: '#FFD700', fontWeight: 700, fontSize: '1.8rem' }}>
-                {parseFloat(rewards.pending).toFixed(4)}
+                {parseFloat(displayPending).toFixed(4)}
               </Typography>
               <Typography variant="caption" sx={{ color: '#B0B8C4' }}>
                 待领取奖励 ZAI (70%)
@@ -577,7 +577,7 @@ function Mining({ account }) {
             <Button
               variant="contained"
               onClick={handleClaimRewards}
-              disabled={claimLoading || parseFloat(rewards.pending) <= 0}
+              disabled={claimLoading || parseFloat(displayPending) <= 0}
               sx={{
                 flex: 1,
                 background: 'linear-gradient(135deg, #00E676, #00C853)',
@@ -586,7 +586,7 @@ function Mining({ account }) {
                 py: 1.5
               }}
             >
-              {claimLoading ? t('loading') : `领取待领取奖励 (${parseFloat(rewards.pending).toFixed(2)} ZAI)`}
+              {claimLoading ? t('loading') : `领取待领取奖励 (${parseFloat(displayPending).toFixed(2)} ZAI)`}
             </Button>
             <Button
               variant="contained"
