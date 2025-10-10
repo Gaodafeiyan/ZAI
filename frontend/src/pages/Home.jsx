@@ -1,4 +1,4 @@
-import { Box, Container, Typography, Button, Grid, Card, CardContent, Chip } from '@mui/material';
+import { Box, Container, Typography, Button, Grid, Card, CardContent, Chip, useMediaQuery, useTheme } from '@mui/material';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
@@ -18,6 +18,8 @@ const MotionCard = motion(Card);
 
 export default function Home() {
   const { t } = useTranslation();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [stats, setStats] = useState({
     totalPower: '0',
     dailyReward: '0',
@@ -191,11 +193,17 @@ export default function Home() {
             </MotionBox>
           </Grid>
 
-          {/* 3D Miner Model */}
+          {/* 3D Miner Model - Instant on Mobile */}
           <Grid item xs={12} md={6}>
-            <Box sx={{ height: { xs: '300px', md: '500px' } }}>
-              <MinerModel3D active={true} />
-            </Box>
+            <MotionBox
+              initial={isMobile ? { opacity: 1 } : { opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={isMobile ? { duration: 0 } : { duration: 0.8 }}
+            >
+              <Box sx={{ height: { xs: '300px', md: '500px' } }}>
+                <MinerModel3D active={true} />
+              </Box>
+            </MotionBox>
           </Grid>
         </Grid>
       </Container>
