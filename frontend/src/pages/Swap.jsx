@@ -9,9 +9,10 @@ import {
   CardContent,
   CircularProgress,
   Alert,
-  InputAdornment,
   IconButton,
-  Paper
+  Paper,
+  Select,
+  MenuItem
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import SwapVertIcon from '@mui/icons-material/SwapVert';
@@ -21,21 +22,35 @@ import { toast } from 'react-toastify';
 import { CONTRACTS } from '../utils/constants';
 import USDTABI from '../contracts/USDT.json';
 import ZUSDABI from '../contracts/ZUSD.json';
+import ZAIABI from '../contracts/ZenithAI.json';
+import PancakeRouterABI from '../contracts/PancakeRouter.json';
 
 const MotionCard = motion(Card);
 
 export default function Swap() {
   const [account, setAccount] = useState('');
-  const [fromToken, setFromToken] = useState('USDT'); // USDT or ZUSD
-  const [toToken, setToToken] = useState('ZUSD'); // ZUSD or USDT
+  const [fromToken, setFromToken] = useState('USDT'); // USDT, ZUSD
+  const [toToken, setToToken] = useState('ZUSD'); // ZUSD, USDT, ZAI
   const [amount, setAmount] = useState('');
   const [usdtBalance, setUsdtBalance] = useState('0');
   const [zusdBalance, setZusdBalance] = useState('0');
+  const [zaiBalance, setZaiBalance] = useState('0');
+  const [estimatedOutput, setEstimatedOutput] = useState('0');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     checkWalletConnection();
   }, []);
+
+  useEffect(() => {
+    // 当输入金额改变时，如果是 ZUSD -> ZAI，获取预估输出
+    if (fromToken === 'ZUSD' && toToken === 'ZAI' && amount && parseFloat(amount) > 0) {
+      getEstimatedZAI();
+    } else if ((fromToken === 'USDT' && toToken === 'ZUSD') || (fromToken === 'ZUSD' && toToken === 'USDT')) {
+      // OTC 模式 1:1
+      setEstimatedOutput(amount);
+    }
+  }, [amount, fromToken, toToken]);
 
   const checkWalletConnection = async () => {
     if (window.ethereum) {
@@ -100,16 +115,68 @@ export default function Swap() {
       const zusdContract = new ethers.Contract(CONTRACTS.ZUSD, ZUSDABI.abi, provider);
       const zusdBal = await zusdContract.balanceOf(address);
       setZusdBalance(ethers.formatUnits(zusdBal, 18));
+
+      // ZAI 合约
+      const zaiContract = new ethers.Contract(CONTRACTS.ZAI, ZAIABI.abi, provider);
+      const zaiBal = await zaiContract.balanceOf(address);
+      setZaiBalance(ethers.formatUnits(zaiBal, 18));
     } catch (error) {
       console.error('Failed to load balances:', error);
     }
   };
 
-  const handleSwapDirection = () => {
-    // 交换方向
-    setFromToken(toToken);
-    setToToken(fromToken);
+  const getEstimatedZAI = async () => {
+    try {
+      if (!amount || parseFloat(amount) <= 0) {
+        setEstimatedOutput('0');
+        return;
+      }
+
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const routerContract = new ethers.Contract(
+        CONTRACTS.PANCAKE_ROUTER,
+        PancakeRouterABI.abi,
+        provider
+      );
+
+      const amountIn = ethers.parseUnits(amount, 18);
+      const path = [CONTRACTS.ZUSD, CONTRACTS.ZAI];
+
+      const amounts = await routerContract.getAmountsOut(amountIn, path);
+      const estimatedZAI = ethers.formatUnits(amounts[1], 18);
+      setEstimatedOutput(estimatedZAI);
+    } catch (error) {
+      console.error('Failed to get estimated ZAI:', error);
+      setEstimatedOutput('0');
+    }
+  };
+
+  const handleTokenSelect = (position, token) => {
+    if (position === 'from') {
+      setFromToken(token);
+      // 根据 from token 自动设置 to token
+      if (token === 'USDT') {
+        setToToken('ZUSD');
+      } else if (token === 'ZUSD') {
+        setToToken('ZAI'); // 默认 ZUSD -> ZAI
+      }
+    } else {
+      setToToken(token);
+    }
     setAmount('');
+    setEstimatedOutput('0');
+  };
+
+  const handleSwapDirection = () => {
+    // 只有 USDT <-> ZUSD 可以双向兑换
+    if ((fromToken === 'USDT' && toToken === 'ZUSD') || (fromToken === 'ZUSD' && toToken === 'USDT')) {
+      setFromToken(toToken);
+      setToToken(fromToken);
+      setAmount('');
+      setEstimatedOutput('0');
+    } else {
+      toast.warning('ZUSD → ZAI 为单向兑换');
+    }
   };
 
   const handleSwap = async () => {
@@ -123,23 +190,29 @@ export default function Swap() {
       return;
     }
 
-    const fromBalance = fromToken === 'USDT' ? usdtBalance : zusdBalance;
+    const fromBalance = fromToken === 'USDT' ? usdtBalance : (fromToken === 'ZUSD' ? zusdBalance : zaiBalance);
     if (parseFloat(amount) > parseFloat(fromBalance)) {
       toast.error(`${fromToken} 余额不足！`);
       return;
     }
 
-    // 验证金额范围
-    if (parseFloat(amount) < 10) {
-      toast.error('最小兑换金额为 10！');
-      return;
+    // OTC 模式验证金额范围
+    if ((fromToken === 'USDT' && toToken === 'ZUSD') || (fromToken === 'ZUSD' && toToken === 'USDT')) {
+      if (parseFloat(amount) < 10) {
+        toast.error('最小兑换金额为 10！');
+        return;
+      }
+      if (parseFloat(amount) > 10000) {
+        toast.error('最大兑换金额为 10000！');
+        return;
+      }
+      await handleOTCSwap();
+    } else if (fromToken === 'ZUSD' && toToken === 'ZAI') {
+      await handleDEXSwap();
     }
+  };
 
-    if (parseFloat(amount) > 10000) {
-      toast.error('最大兑换金额为 10000！');
-      return;
-    }
-
+  const handleOTCSwap = async () => {
     try {
       setLoading(true);
       const provider = new ethers.BrowserProvider(window.ethereum);
@@ -176,6 +249,7 @@ export default function Swap() {
 
       // 清空输入
       setAmount('');
+      setEstimatedOutput('0');
 
       // 提示用户等待到账
       toast.warning(`⏰ 请等待 ${toToken} 到账...`, {
@@ -183,7 +257,80 @@ export default function Swap() {
       });
 
     } catch (error) {
-      console.error('Swap failed:', error);
+      console.error('OTC Swap failed:', error);
+      if (error.code === 'ACTION_REJECTED') {
+        toast.error('用户取消交易');
+      } else {
+        toast.error('兑换失败: ' + (error.reason || error.message));
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDEXSwap = async () => {
+    try {
+      setLoading(true);
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+
+      const zusdContract = new ethers.Contract(CONTRACTS.ZUSD, ZUSDABI.abi, signer);
+      const routerContract = new ethers.Contract(
+        CONTRACTS.PANCAKE_ROUTER,
+        PancakeRouterABI.abi,
+        signer
+      );
+
+      const amountIn = ethers.parseUnits(amount, 18);
+      const path = [CONTRACTS.ZUSD, CONTRACTS.ZAI];
+
+      // 检查授权
+      toast.info('检查 ZUSD 授权...');
+      const allowance = await zusdContract.allowance(account, CONTRACTS.PANCAKE_ROUTER);
+
+      if (allowance < amountIn) {
+        toast.info('正在授权 ZUSD...');
+        const approveTx = await zusdContract.approve(
+          CONTRACTS.PANCAKE_ROUTER,
+          ethers.MaxUint256
+        );
+        await approveTx.wait();
+        toast.success('✅ ZUSD 授权成功！');
+      }
+
+      // 获取最新价格并设置滑点（1%）
+      const amounts = await routerContract.getAmountsOut(amountIn, path);
+      const amountOutMin = (amounts[1] * 99n) / 100n; // 1% 滑点
+
+      // 执行兑换
+      toast.info(`正在兑换 ${amount} ZUSD 为 ZAI...`);
+      const deadline = Math.floor(Date.now() / 1000) + 60 * 20; // 20分钟
+
+      const swapTx = await routerContract.swapExactTokensForTokens(
+        amountIn,
+        amountOutMin,
+        path,
+        account,
+        deadline
+      );
+
+      toast.info('等待交易确认...');
+      const receipt = await swapTx.wait();
+
+      const receivedZAI = ethers.formatUnits(amounts[1], 18);
+      toast.success(`✅ 兑换成功！获得 ${parseFloat(receivedZAI).toFixed(4)} ZAI`);
+
+      console.log(`ZUSD -> ZAI 兑换成功: ${receipt.hash}`);
+
+      // 刷新余额
+      await loadBalances(account);
+
+      // 清空输入
+      setAmount('');
+      setEstimatedOutput('0');
+
+    } catch (error) {
+      console.error('DEX Swap failed:', error);
       if (error.code === 'ACTION_REJECTED') {
         toast.error('用户取消交易');
       } else {
@@ -195,8 +342,20 @@ export default function Swap() {
   };
 
   const getBalance = (token) => {
-    return token === 'USDT' ? usdtBalance : zusdBalance;
+    if (token === 'USDT') return usdtBalance;
+    if (token === 'ZUSD') return zusdBalance;
+    if (token === 'ZAI') return zaiBalance;
+    return '0';
   };
+
+  const getAvailableToTokens = () => {
+    if (fromToken === 'USDT') return ['ZUSD'];
+    if (fromToken === 'ZUSD') return ['USDT', 'ZAI'];
+    return [];
+  };
+
+  const isOTCMode = (fromToken === 'USDT' && toToken === 'ZUSD') || (fromToken === 'ZUSD' && toToken === 'USDT');
+  const isDEXMode = fromToken === 'ZUSD' && toToken === 'ZAI';
 
   return (
     <Box
@@ -309,24 +468,23 @@ export default function Swap() {
                         }
                       }}
                     />
-                    <Button
-                      variant="contained"
+                    <Select
+                      value={fromToken}
+                      onChange={(e) => handleTokenSelect('from', e.target.value)}
+                      disabled={loading}
                       sx={{
                         minWidth: '100px',
                         bgcolor: 'rgba(255, 255, 255, 0.1)',
                         color: '#fff',
                         fontWeight: 600,
-                        py: 1,
-                        px: 2,
                         borderRadius: 2,
-                        textTransform: 'none',
-                        '&:hover': {
-                          bgcolor: 'rgba(255, 255, 255, 0.15)',
-                        }
+                        '& .MuiOutline-notchedOutline': { border: 'none' },
+                        '& .MuiSelect-icon': { color: '#fff' }
                       }}
                     >
-                      {fromToken}
-                    </Button>
+                      <MenuItem value="USDT">USDT</MenuItem>
+                      <MenuItem value="ZUSD">ZUSD</MenuItem>
+                    </Select>
                   </Box>
                 </Paper>
 
@@ -334,13 +492,16 @@ export default function Swap() {
                 <Box sx={{ display: 'flex', justifyContent: 'center', my: -1, position: 'relative', zIndex: 1 }}>
                   <IconButton
                     onClick={handleSwapDirection}
-                    disabled={loading}
+                    disabled={loading || !isOTCMode}
                     sx={{
                       bgcolor: 'rgba(255, 255, 255, 0.05)',
                       border: '4px solid #0A0E17',
-                      color: '#fff',
+                      color: isOTCMode ? '#fff' : 'rgba(255, 255, 255, 0.3)',
                       '&:hover': {
-                        bgcolor: 'rgba(255, 255, 255, 0.1)',
+                        bgcolor: isOTCMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.05)',
+                      },
+                      '&:disabled': {
+                        color: 'rgba(255, 255, 255, 0.2)'
                       }
                     }}
                   >
@@ -371,30 +532,30 @@ export default function Swap() {
                       sx={{
                         fontSize: '2rem',
                         fontWeight: 500,
-                        color: amount && parseFloat(amount) > 0 ? '#fff' : 'rgba(255, 255, 255, 0.3)',
+                        color: estimatedOutput && parseFloat(estimatedOutput) > 0 ? '#fff' : 'rgba(255, 255, 255, 0.3)',
                         flex: 1
                       }}
                     >
-                      {amount && parseFloat(amount) > 0 ? amount : '0.0'}
+                      {estimatedOutput && parseFloat(estimatedOutput) > 0 ? parseFloat(estimatedOutput).toFixed(4) : '0.0'}
                     </Typography>
-                    <Button
-                      variant="contained"
+                    <Select
+                      value={toToken}
+                      onChange={(e) => handleTokenSelect('to', e.target.value)}
+                      disabled={loading}
                       sx={{
                         minWidth: '100px',
                         bgcolor: 'rgba(255, 255, 255, 0.1)',
                         color: '#fff',
                         fontWeight: 600,
-                        py: 1,
-                        px: 2,
                         borderRadius: 2,
-                        textTransform: 'none',
-                        '&:hover': {
-                          bgcolor: 'rgba(255, 255, 255, 0.15)',
-                        }
+                        '& .MuiOutline-notchedOutline': { border: 'none' },
+                        '& .MuiSelect-icon': { color: '#fff' }
                       }}
                     >
-                      {toToken}
-                    </Button>
+                      {getAvailableToTokens().map(token => (
+                        <MenuItem key={token} value={token}>{token}</MenuItem>
+                      ))}
+                    </Select>
                   </Box>
                 </Paper>
 
@@ -412,12 +573,26 @@ export default function Swap() {
                       }
                     }}
                   >
-                    <Typography variant="body2">
-                      1 {fromToken} = 1 {toToken}
-                    </Typography>
-                    <Typography variant="caption" sx={{ display: 'block', mt: 0.5 }}>
-                      兑换限额: 10 - 10,000 • 预计到账时间: ~30秒
-                    </Typography>
+                    {isOTCMode && (
+                      <>
+                        <Typography variant="body2">
+                          1 {fromToken} = 1 {toToken}
+                        </Typography>
+                        <Typography variant="caption" sx={{ display: 'block', mt: 0.5 }}>
+                          兑换限额: 10 - 10,000 • 预计到账时间: ~30秒 • OTC 模式
+                        </Typography>
+                      </>
+                    )}
+                    {isDEXMode && (
+                      <>
+                        <Typography variant="body2">
+                          {amount} ZUSD ≈ {estimatedOutput && parseFloat(estimatedOutput).toFixed(4)} ZAI
+                        </Typography>
+                        <Typography variant="caption" sx={{ display: 'block', mt: 0.5 }}>
+                          PancakeSwap 实时兑换 • 滑点: 1% • 即时到账
+                        </Typography>
+                      </>
+                    )}
                   </Alert>
                 )}
 
