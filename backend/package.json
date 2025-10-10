@@ -5,12 +5,14 @@
   "main": "monitor-swap.js",
   "scripts": {
     "monitor": "node monitor-swap.js",
+    "auto-swap": "node auto-swap.js",
     "start": "node monitor-swap.js"
   },
   "keywords": ["blockchain", "bsc", "swap", "monitor"],
   "author": "Zenithus Team",
   "license": "MIT",
   "dependencies": {
+    "dotenv": "^16.4.5",
     "ethers": "^6.13.4"
   }
 }
