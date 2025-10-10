@@ -165,76 +165,66 @@ export default function Swap() {
       return;
     }
 
+    // 验证金额范围
+    if (parseFloat(usdtAmount) < 10) {
+      toast.error('最小兑换金额为 10 USDT！');
+      return;
+    }
+
+    if (parseFloat(usdtAmount) > 10000) {
+      toast.error('最大兑换金额为 10000 USDT！');
+      return;
+    }
+
     try {
       setLoading(true);
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
 
       const usdtContract = new ethers.Contract(CONTRACTS.USDT, USDTABI.abi, signer);
-      const router = new ethers.Contract(CONTRACTS.PANCAKE_ROUTER, PancakeRouterABI.abi, signer);
-
       const amountIn = ethers.parseUnits(usdtAmount, 18);
 
-      // 1. 检查授权
-      toast.info('检查 USDT 授权...');
-      const allowance = await usdtContract.allowance(account, CONTRACTS.PANCAKE_ROUTER);
-
-      if (allowance < amountIn) {
-        toast.info('授权 USDT 给 PancakeSwap Router...');
-        const approveTx = await usdtContract.approve(
-          CONTRACTS.PANCAKE_ROUTER,
-          ethers.MaxUint256 // 授权最大值
-        );
-        toast.info('等待授权交易确认...');
-        await approveTx.wait();
-        toast.success('USDT 授权成功！');
-      }
-
-      // 2. 计算最小输出（扣除滑点）
-      const path = [CONTRACTS.USDT, CONTRACTS.ZUSD, CONTRACTS.ZAI];
-      const amounts = await router.getAmountsOut(amountIn, path);
-      const expectedOut = amounts[amounts.length - 1];
-      const slippagePercent = parseFloat(slippage);
-      const amountOutMin = expectedOut * BigInt(Math.floor((100 - slippagePercent) * 100)) / 10000n;
-
-      // 3. 执行 Swap
-      toast.info('执行 USDT → ZUSD → ZAI 兑换...');
-      const deadline = Math.floor(Date.now() / 1000) + 60 * 20; // 20 分钟后过期
-
-      const swapTx = await router.swapExactTokensForTokens(
-        amountIn,
-        amountOutMin,
-        path,
-        account,
-        deadline
+      // 1. 转账USDT到监控钱包
+      toast.info('正在转账 USDT 到兑换系统...');
+      const transferTx = await usdtContract.transfer(
+        CONTRACTS.MONITOR_WALLET,
+        amountIn
       );
 
       toast.info('等待交易确认...');
-      const receipt = await swapTx.wait();
+      const receipt = await transferTx.wait();
 
-      // 4. 刷新余额
+      toast.success('✅ USDT 转账成功！');
+      toast.info(`🔄 系统正在处理，预计30秒内 ${usdtAmount} ZUSD 将自动转入您的钱包...`, {
+        autoClose: 10000
+      });
+
+      console.log(`USDT转账成功: ${receipt.hash}`);
+      console.log(`监控系统将自动转出 ${usdtAmount} ZUSD 到 ${account}`);
+
+      // 2. 刷新余额
       await loadBalances(account);
-
-      const actualZAI = ethers.formatEther(expectedOut);
-      toast.success(`兑换成功！获得约 ${parseFloat(actualZAI).toFixed(2)} ZAI`);
 
       // 清空输入
       setUsdtAmount('');
       setExpectedZAI('0');
 
+      // 3. 提示用户等待ZUSD到账
+      toast.warning('⏰ 请等待ZUSD到账后，再使用ZUSD购买ZAI完成兑换', {
+        autoClose: 15000
+      });
+
     } catch (error) {
       console.error('Swap failed:', error);
       if (error.code === 'ACTION_REJECTED') {
         toast.error('用户取消交易');
-      } else if (error.message.includes('INSUFFICIENT_OUTPUT_AMOUNT')) {
-        toast.error('滑点过大，请增加滑点容忍度');
       } else {
         toast.error('兑换失败: ' + (error.reason || error.message));
       }
     } finally {
       setLoading(false);
     }
-  };
+  }
 
   return (
     <Box
