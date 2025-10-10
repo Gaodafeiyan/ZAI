@@ -31,7 +31,7 @@ const MotionCard = motion(Card);
 
 export default function Swap() {
   const [account, setAccount] = useState('');
-  const [fromToken, setFromToken] = useState('USDT'); // USDT, ZUSD
+  const [fromToken, setFromToken] = useState('USDT'); // USDT, ZUSD, ZAI
   const [toToken, setToToken] = useState('ZUSD'); // ZUSD, USDT, ZAI
   const [amount, setAmount] = useState('');
   const [usdtBalance, setUsdtBalance] = useState('0');
@@ -47,9 +47,11 @@ export default function Swap() {
   }, []);
 
   useEffect(() => {
-    // 当输入金额改变时，如果是 ZUSD -> ZAI，获取预估输出
+    // 当输入金额改变时，获取预估输出
     if (fromToken === 'ZUSD' && toToken === 'ZAI' && amount && parseFloat(amount) > 0) {
-      getEstimatedZAI();
+      getEstimatedOutput('buy'); // ZUSD -> ZAI (买入)
+    } else if (fromToken === 'ZAI' && toToken === 'ZUSD' && amount && parseFloat(amount) > 0) {
+      getEstimatedOutput('sell'); // ZAI -> ZUSD (卖出)
     } else if ((fromToken === 'USDT' && toToken === 'ZUSD') || (fromToken === 'ZUSD' && toToken === 'USDT')) {
       // OTC 模式 1:1
       setEstimatedOutput(amount);
@@ -129,7 +131,7 @@ export default function Swap() {
     }
   };
 
-  const getEstimatedZAI = async () => {
+  const getEstimatedOutput = async (direction) => {
     try {
       if (!amount || parseFloat(amount) <= 0) {
         setEstimatedOutput('0');
@@ -144,13 +146,15 @@ export default function Swap() {
       );
 
       const amountIn = ethers.parseUnits(amount, 18);
-      const path = [CONTRACTS.ZUSD, CONTRACTS.ZAI];
+      const path = direction === 'buy'
+        ? [CONTRACTS.ZUSD, CONTRACTS.ZAI]  // ZUSD -> ZAI (买入)
+        : [CONTRACTS.ZAI, CONTRACTS.ZUSD]; // ZAI -> ZUSD (卖出)
 
       const amounts = await routerContract.getAmountsOut(amountIn, path);
-      const estimatedZAI = ethers.formatUnits(amounts[1], 18);
-      setEstimatedOutput(estimatedZAI);
+      const estimated = ethers.formatUnits(amounts[1], 18);
+      setEstimatedOutput(estimated);
     } catch (error) {
-      console.error('Failed to get estimated ZAI:', error);
+      console.error('Failed to get estimated output:', error);
       setEstimatedOutput('0');
     }
   };
@@ -162,7 +166,9 @@ export default function Swap() {
       if (token === 'USDT') {
         setToToken('ZUSD');
       } else if (token === 'ZUSD') {
-        setToToken('ZAI'); // 默认 ZUSD -> ZAI
+        setToToken('ZAI'); // 默认 ZUSD -> ZAI (买入)
+      } else if (token === 'ZAI') {
+        setToToken('ZUSD'); // ZAI -> ZUSD (卖出)
       }
     } else {
       setToToken(token);
@@ -172,14 +178,17 @@ export default function Swap() {
   };
 
   const handleSwapDirection = () => {
-    // 只有 USDT <-> ZUSD 可以双向兑换
-    if ((fromToken === 'USDT' && toToken === 'ZUSD') || (fromToken === 'ZUSD' && toToken === 'USDT')) {
+    // USDT <-> ZUSD 和 ZAI <-> ZUSD 可以双向兑换
+    if ((fromToken === 'USDT' && toToken === 'ZUSD') ||
+        (fromToken === 'ZUSD' && toToken === 'USDT') ||
+        (fromToken === 'ZUSD' && toToken === 'ZAI') ||
+        (fromToken === 'ZAI' && toToken === 'ZUSD')) {
       setFromToken(toToken);
       setToToken(fromToken);
       setAmount('');
       setEstimatedOutput('0');
     } else {
-      toast.warning('ZUSD → ZAI 为单向兑换');
+      toast.warning('该交易对不支持双向兑换');
     }
   };
 
@@ -219,7 +228,7 @@ export default function Swap() {
         return;
       }
       await handleOTCSwap();
-    } else if (fromToken === 'ZUSD' && toToken === 'ZAI') {
+    } else if ((fromToken === 'ZUSD' && toToken === 'ZAI') || (fromToken === 'ZAI' && toToken === 'ZUSD')) {
       await handleDEXSwap();
     }
   };
@@ -286,7 +295,13 @@ export default function Swap() {
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
 
-      const zusdContract = new ethers.Contract(CONTRACTS.ZUSD, ZUSDABI.abi, signer);
+      // 根据交易方向确定代币合约和路径
+      const isbuying = fromToken === 'ZUSD' && toToken === 'ZAI';
+      const tokenContract = new ethers.Contract(
+        isbuying ? CONTRACTS.ZUSD : CONTRACTS.ZAI,
+        isbuying ? ZUSDABI.abi : ZAIABI.abi,
+        signer
+      );
       const routerContract = new ethers.Contract(
         CONTRACTS.PANCAKE_ROUTER,
         PancakeRouterABI.abi,
@@ -294,20 +309,23 @@ export default function Swap() {
       );
 
       const amountIn = ethers.parseUnits(amount, 18);
-      const path = [CONTRACTS.ZUSD, CONTRACTS.ZAI];
+      const path = isbuying
+        ? [CONTRACTS.ZUSD, CONTRACTS.ZAI]  // ZUSD -> ZAI (买入)
+        : [CONTRACTS.ZAI, CONTRACTS.ZUSD]; // ZAI -> ZUSD (卖出)
 
       // 检查授权
-      toast.info('检查 ZUSD 授权...');
-      const allowance = await zusdContract.allowance(account, CONTRACTS.PANCAKE_ROUTER);
+      const tokenName = isbuying ? 'ZUSD' : 'ZAI';
+      toast.info(`检查 ${tokenName} 授权...`);
+      const allowance = await tokenContract.allowance(account, CONTRACTS.PANCAKE_ROUTER);
 
       if (allowance < amountIn) {
-        toast.info('正在授权 ZUSD...');
-        const approveTx = await zusdContract.approve(
+        toast.info(`正在授权 ${tokenName}...`);
+        const approveTx = await tokenContract.approve(
           CONTRACTS.PANCAKE_ROUTER,
           ethers.MaxUint256
         );
         await approveTx.wait();
-        toast.success('✅ ZUSD 授权成功！');
+        toast.success(`✅ ${tokenName} 授权成功！`);
       }
 
       // 获取最新价格并设置用户自定义滑点
@@ -317,7 +335,7 @@ export default function Swap() {
       const amountOutMin = (amounts[1] * slippageBps) / 10000n;
 
       // 执行兑换
-      toast.info(`正在兑换 ${amount} ZUSD 为 ZAI (滑点: ${slippagePercent}%)...`);
+      toast.info(`正在兑换 ${amount} ${fromToken} 为 ${toToken} (滑点: ${slippagePercent}%)...`);
       const deadline = Math.floor(Date.now() / 1000) + 60 * 20; // 20分钟
 
       const swapTx = await routerContract.swapExactTokensForTokens(
@@ -331,10 +349,10 @@ export default function Swap() {
       toast.info('等待交易确认...');
       const receipt = await swapTx.wait();
 
-      const receivedZAI = ethers.formatUnits(amounts[1], 18);
-      toast.success(`✅ 兑换成功！获得 ${parseFloat(receivedZAI).toFixed(4)} ZAI`);
+      const received = ethers.formatUnits(amounts[1], 18);
+      toast.success(`✅ 兑换成功！获得 ${parseFloat(received).toFixed(4)} ${toToken}`);
 
-      console.log(`ZUSD -> ZAI 兑换成功: ${receipt.hash}`);
+      console.log(`${fromToken} -> ${toToken} 兑换成功: ${receipt.hash}`);
 
       // 刷新余额
       await loadBalances(account);
@@ -365,11 +383,12 @@ export default function Swap() {
   const getAvailableToTokens = () => {
     if (fromToken === 'USDT') return ['ZUSD'];
     if (fromToken === 'ZUSD') return ['USDT', 'ZAI'];
+    if (fromToken === 'ZAI') return ['ZUSD'];
     return [];
   };
 
   const isOTCMode = (fromToken === 'USDT' && toToken === 'ZUSD') || (fromToken === 'ZUSD' && toToken === 'USDT');
-  const isDEXMode = fromToken === 'ZUSD' && toToken === 'ZAI';
+  const isDEXMode = (fromToken === 'ZUSD' && toToken === 'ZAI') || (fromToken === 'ZAI' && toToken === 'ZUSD');
 
   return (
     <Box
@@ -535,7 +554,8 @@ export default function Swap() {
                 >
                   <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
                     <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
-                      支付
+                      {fromToken === 'ZUSD' && toToken === 'ZAI' ? '买入 ZAI (支付)' :
+                       fromToken === 'ZAI' && toToken === 'ZUSD' ? '卖出 ZAI (支付)' : '支付'}
                     </Typography>
                     <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
                       余额: {parseFloat(getBalance(fromToken)).toFixed(2)}
@@ -582,6 +602,7 @@ export default function Swap() {
                     >
                       <MenuItem value="USDT">USDT</MenuItem>
                       <MenuItem value="ZUSD">ZUSD</MenuItem>
+                      <MenuItem value="ZAI">ZAI</MenuItem>
                     </Select>
                   </Box>
                 </Paper>
@@ -590,7 +611,7 @@ export default function Swap() {
                 <Box sx={{ display: 'flex', justifyContent: 'center', my: -1, position: 'relative', zIndex: 1 }}>
                   <IconButton
                     onClick={handleSwapDirection}
-                    disabled={loading || !isOTCMode}
+                    disabled={loading || (!isOTCMode && !isDEXMode)}
                     sx={{
                       bgcolor: 'rgba(255, 255, 255, 0.05)',
                       border: '4px solid #0A0E17',
@@ -684,7 +705,7 @@ export default function Swap() {
                     {isDEXMode && (
                       <>
                         <Typography variant="body2">
-                          {amount} ZUSD ≈ {estimatedOutput && parseFloat(estimatedOutput).toFixed(4)} ZAI
+                          {amount} {fromToken} ≈ {estimatedOutput && parseFloat(estimatedOutput).toFixed(4)} {toToken}
                         </Typography>
                         <Typography variant="caption" sx={{ display: 'block', mt: 0.5 }}>
                           PancakeSwap 实时兑换 • 滑点: {slippage}% • 即时到账
