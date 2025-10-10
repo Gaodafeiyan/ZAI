@@ -122,7 +122,7 @@ function Stars() {
 }
 
 // Canvas Container - Now responsive
-export default function MinerModel3D({ active = true }) {
+export default function MinerModel3D({ active = true, disableAnimation = false }) {
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -140,9 +140,9 @@ export default function MinerModel3D({ active = true }) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.8 }}
+      initial={disableAnimation ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.8 }}
       animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.8 }}
+      transition={disableAnimation ? { duration: 0 } : { duration: 0.8 }}
       style={{ width: '100%', height: '100%' }}
     >
       <Canvas style={{ width: '100%', height: '100%' }}>

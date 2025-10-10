@@ -201,7 +201,7 @@ export default function Home() {
               transition={isMobile ? { duration: 0 } : { duration: 0.8 }}
             >
               <Box sx={{ height: { xs: '300px', md: '500px' } }}>
-                <MinerModel3D active={true} />
+                <MinerModel3D active={true} disableAnimation={isMobile} />
               </Box>
             </MotionBox>
           </Grid>
