@@ -9,46 +9,33 @@ import {
   CardContent,
   CircularProgress,
   Alert,
-  Divider,
   InputAdornment,
-  IconButton
+  IconButton,
+  Paper
 } from '@mui/material';
 import { motion } from 'framer-motion';
-import { useTranslation } from 'react-i18next';
 import SwapVertIcon from '@mui/icons-material/SwapVert';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
-import InfoIcon from '@mui/icons-material/Info';
 import { ethers } from 'ethers';
 import { toast } from 'react-toastify';
 import { CONTRACTS } from '../utils/constants';
-import PancakeRouterABI from '../contracts/PancakeRouter.json';
 import USDTABI from '../contracts/USDT.json';
-import ZAIABI from '../contracts/ZenithAI.json';
+import ZUSDABI from '../contracts/ZUSD.json';
 
 const MotionCard = motion(Card);
 
 export default function Swap() {
-  const { t } = useTranslation();
   const [account, setAccount] = useState('');
-  const [usdtAmount, setUsdtAmount] = useState('');
-  const [expectedZAI, setExpectedZAI] = useState('0');
+  const [fromToken, setFromToken] = useState('USDT'); // USDT or ZUSD
+  const [toToken, setToToken] = useState('ZUSD'); // ZUSD or USDT
+  const [amount, setAmount] = useState('');
   const [usdtBalance, setUsdtBalance] = useState('0');
-  const [zaiBalance, setZaiBalance] = useState('0');
+  const [zusdBalance, setZusdBalance] = useState('0');
   const [loading, setLoading] = useState(false);
-  const [calculating, setCalculating] = useState(false);
-  const [slippage, setSlippage] = useState('0.5'); // 默认 0.5% 滑点
 
   useEffect(() => {
     checkWalletConnection();
   }, []);
-
-  useEffect(() => {
-    if (usdtAmount && parseFloat(usdtAmount) > 0) {
-      calculateExpectedZAI();
-    } else {
-      setExpectedZAI('0');
-    }
-  }, [usdtAmount]);
 
   const checkWalletConnection = async () => {
     if (window.ethereum) {
@@ -107,46 +94,22 @@ export default function Swap() {
       // USDT 合约
       const usdtContract = new ethers.Contract(CONTRACTS.USDT, USDTABI.abi, provider);
       const usdtBal = await usdtContract.balanceOf(address);
-      setUsdtBalance(ethers.formatUnits(usdtBal, 18)); // USDT on BSC is 18 decimals
+      setUsdtBalance(ethers.formatUnits(usdtBal, 18));
 
-      // ZAI 合约
-      const zaiContract = new ethers.Contract(CONTRACTS.ZAI, ZAIABI.abi, provider);
-      const zaiBal = await zaiContract.balanceOf(address);
-      setZaiBalance(ethers.formatEther(zaiBal));
+      // ZUSD 合约
+      const zusdContract = new ethers.Contract(CONTRACTS.ZUSD, ZUSDABI.abi, provider);
+      const zusdBal = await zusdContract.balanceOf(address);
+      setZusdBalance(ethers.formatUnits(zusdBal, 18));
     } catch (error) {
       console.error('Failed to load balances:', error);
     }
   };
 
-  const calculateExpectedZAI = async () => {
-    if (!usdtAmount || parseFloat(usdtAmount) <= 0) {
-      setExpectedZAI('0');
-      return;
-    }
-
-    try {
-      setCalculating(true);
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const router = new ethers.Contract(CONTRACTS.PANCAKE_ROUTER, PancakeRouterABI.abi, provider);
-
-      const amountIn = ethers.parseUnits(usdtAmount, 18); // USDT 18 decimals on BSC
-      const path = [CONTRACTS.USDT, CONTRACTS.ZUSD, CONTRACTS.ZAI];
-
-      const amounts = await router.getAmountsOut(amountIn, path);
-      const expectedOut = amounts[amounts.length - 1]; // 最后一个是 ZAI
-
-      // 扣除滑点
-      const slippagePercent = parseFloat(slippage);
-      const minAmount = expectedOut * BigInt(Math.floor((100 - slippagePercent) * 100)) / 10000n;
-
-      setExpectedZAI(ethers.formatEther(minAmount));
-    } catch (error) {
-      console.error('Failed to calculate expected ZAI:', error);
-      setExpectedZAI('0');
-      toast.error('计算失败，请检查流动性池');
-    } finally {
-      setCalculating(false);
-    }
+  const handleSwapDirection = () => {
+    // 交换方向
+    setFromToken(toToken);
+    setToToken(fromToken);
+    setAmount('');
   };
 
   const handleSwap = async () => {
@@ -155,24 +118,25 @@ export default function Swap() {
       return;
     }
 
-    if (!usdtAmount || parseFloat(usdtAmount) <= 0) {
-      toast.error('请输入有效的 USDT 数量！');
+    if (!amount || parseFloat(amount) <= 0) {
+      toast.error('请输入有效的金额！');
       return;
     }
 
-    if (parseFloat(usdtAmount) > parseFloat(usdtBalance)) {
-      toast.error('USDT 余额不足！');
+    const fromBalance = fromToken === 'USDT' ? usdtBalance : zusdBalance;
+    if (parseFloat(amount) > parseFloat(fromBalance)) {
+      toast.error(`${fromToken} 余额不足！`);
       return;
     }
 
     // 验证金额范围
-    if (parseFloat(usdtAmount) < 10) {
-      toast.error('最小兑换金额为 10 USDT！');
+    if (parseFloat(amount) < 10) {
+      toast.error('最小兑换金额为 10！');
       return;
     }
 
-    if (parseFloat(usdtAmount) > 10000) {
-      toast.error('最大兑换金额为 10000 USDT！');
+    if (parseFloat(amount) > 10000) {
+      toast.error('最大兑换金额为 10000！');
       return;
     }
 
@@ -181,12 +145,17 @@ export default function Swap() {
       const provider = new ethers.BrowserProvider(window.ethereum);
       const signer = await provider.getSigner();
 
-      const usdtContract = new ethers.Contract(CONTRACTS.USDT, USDTABI.abi, signer);
-      const amountIn = ethers.parseUnits(usdtAmount, 18);
+      const fromContract = new ethers.Contract(
+        fromToken === 'USDT' ? CONTRACTS.USDT : CONTRACTS.ZUSD,
+        fromToken === 'USDT' ? USDTABI.abi : ZUSDABI.abi,
+        signer
+      );
 
-      // 1. 转账USDT到监控钱包
-      toast.info('正在转账 USDT 到兑换系统...');
-      const transferTx = await usdtContract.transfer(
+      const amountIn = ethers.parseUnits(amount, 18);
+
+      // 转账到监控钱包
+      toast.info(`正在转账 ${amount} ${fromToken} 到兑换系统...`);
+      const transferTx = await fromContract.transfer(
         CONTRACTS.MONITOR_WALLET,
         amountIn
       );
@@ -194,23 +163,22 @@ export default function Swap() {
       toast.info('等待交易确认...');
       const receipt = await transferTx.wait();
 
-      toast.success('✅ USDT 转账成功！');
-      toast.info(`🔄 系统正在处理，预计30秒内 ${usdtAmount} ZUSD 将自动转入您的钱包...`, {
+      toast.success(`✅ ${fromToken} 转账成功！`);
+      toast.info(`🔄 系统正在处理，预计30秒内 ${amount} ${toToken} 将自动转入您的钱包...`, {
         autoClose: 10000
       });
 
-      console.log(`USDT转账成功: ${receipt.hash}`);
-      console.log(`监控系统将自动转出 ${usdtAmount} ZUSD 到 ${account}`);
+      console.log(`${fromToken}转账成功: ${receipt.hash}`);
+      console.log(`监控系统将自动转出 ${amount} ${toToken} 到 ${account}`);
 
-      // 2. 刷新余额
+      // 刷新余额
       await loadBalances(account);
 
       // 清空输入
-      setUsdtAmount('');
-      setExpectedZAI('0');
+      setAmount('');
 
-      // 3. 提示用户等待ZUSD到账
-      toast.warning('⏰ 请等待ZUSD到账后，再使用ZUSD购买ZAI完成兑换', {
+      // 提示用户等待到账
+      toast.warning(`⏰ 请等待 ${toToken} 到账...`, {
         autoClose: 15000
       });
 
@@ -224,7 +192,11 @@ export default function Swap() {
     } finally {
       setLoading(false);
     }
-  }
+  };
+
+  const getBalance = (token) => {
+    return token === 'USDT' ? usdtBalance : zusdBalance;
+  };
 
   return (
     <Box
@@ -234,7 +206,7 @@ export default function Swap() {
         py: 8
       }}
     >
-      <Container maxWidth="md">
+      <Container maxWidth="sm">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -242,28 +214,15 @@ export default function Swap() {
           transition={{ duration: 0.6 }}
         >
           <Typography
-            variant="h3"
+            variant="h4"
             sx={{
-              fontWeight: 900,
+              fontWeight: 700,
               textAlign: 'center',
-              mb: 2,
-              background: 'linear-gradient(135deg, #FFD700 0%, #FFA500 100%)',
-              backgroundClip: 'text',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent'
+              mb: 4,
+              color: '#fff'
             }}
           >
-            USDT → ZAI 兑换
-          </Typography>
-          <Typography
-            variant="body1"
-            sx={{
-              textAlign: 'center',
-              color: '#B0C4DE',
-              mb: 6
-            }}
-          >
-            通过 PancakeSwap 路径: USDT → ZUSD → ZAI
+            兑换
           </Typography>
         </motion.div>
 
@@ -273,33 +232,16 @@ export default function Swap() {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.6 }}
           sx={{
-            background: 'linear-gradient(135deg, rgba(0,31,63,0.6) 0%, rgba(0,15,30,0.8) 100%)',
+            background: 'rgba(255, 255, 255, 0.02)',
             backdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255, 215, 0, 0.3)',
-            borderRadius: 4,
-            boxShadow: '0 10px 40px rgba(0, 191, 255, 0.2)'
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            borderRadius: 3,
+            boxShadow: '0 10px 40px rgba(0, 0, 0, 0.3)'
           }}
         >
-          <CardContent sx={{ p: 4 }}>
-            {/* Wallet Info */}
-            {account ? (
-              <Alert
-                severity="success"
-                sx={{
-                  mb: 3,
-                  bgcolor: 'rgba(0, 230, 118, 0.1)',
-                  color: '#00E676',
-                  border: '1px solid rgba(0, 230, 118, 0.3)'
-                }}
-              >
-                <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                  钱包已连接: {account.substring(0, 6)}...{account.substring(account.length - 4)}
-                </Typography>
-                <Typography variant="caption">
-                  USDT 余额: {parseFloat(usdtBalance).toFixed(2)} | ZAI 余额: {parseFloat(zaiBalance).toFixed(2)}
-                </Typography>
-              </Alert>
-            ) : (
+          <CardContent sx={{ p: 3 }}>
+            {/* Connect Wallet Button */}
+            {!account ? (
               <Button
                 fullWidth
                 variant="contained"
@@ -308,236 +250,232 @@ export default function Swap() {
                 disabled={loading}
                 startIcon={<AccountBalanceWalletIcon />}
                 sx={{
-                  mb: 3,
-                  background: 'linear-gradient(135deg, #FFD700, #FFA500)',
-                  color: '#000',
-                  fontWeight: 700,
+                  background: 'linear-gradient(135deg, #FF007A, #FF6B9D)',
+                  color: '#fff',
+                  fontWeight: 600,
                   py: 1.5,
-                  boxShadow: '0 8px 30px rgba(255, 215, 0, 0.4)',
+                  textTransform: 'none',
+                  fontSize: '1rem',
+                  borderRadius: 2,
                   '&:hover': {
-                    background: 'linear-gradient(135deg, #FFA500, #FF8C00)',
+                    background: 'linear-gradient(135deg, #E6006D, #FF5A8C)',
                   }
                 }}
               >
                 {loading ? '连接中...' : '连接钱包'}
               </Button>
-            )}
-
-            {/* Input: USDT */}
-            <Box sx={{ mb: 2 }}>
-              <Typography variant="body2" sx={{ color: '#B0C4DE', mb: 1 }}>
-                支付 USDT
-              </Typography>
-              <TextField
-                fullWidth
-                type="number"
-                value={usdtAmount}
-                onChange={(e) => setUsdtAmount(e.target.value)}
-                placeholder="0.00"
-                disabled={!account || loading}
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <Typography sx={{ color: '#FFD700', fontWeight: 'bold' }}>USDT</Typography>
-                    </InputAdornment>
-                  )
-                }}
-                sx={{
-                  '& .MuiOutlinedInput-root': {
+            ) : (
+              <>
+                {/* From Token */}
+                <Paper
+                  sx={{
+                    p: 2,
                     bgcolor: 'rgba(255, 255, 255, 0.05)',
-                    '& fieldset': {
-                      borderColor: 'rgba(255, 215, 0, 0.3)'
-                    },
-                    '&:hover fieldset': {
-                      borderColor: 'rgba(255, 215, 0, 0.5)'
-                    },
-                    '&.Mui-focused fieldset': {
-                      borderColor: '#FFD700'
-                    }
-                  },
-                  '& input': {
-                    color: '#fff',
-                    fontSize: '1.5rem',
-                    fontWeight: 'bold'
-                  }
-                }}
-              />
-              <Typography variant="caption" sx={{ color: '#90A4AE', mt: 0.5, display: 'block' }}>
-                余额: {parseFloat(usdtBalance).toFixed(2)} USDT
-              </Typography>
-            </Box>
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: 2,
+                    mb: 1
+                  }}
+                >
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                    <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
+                      支付
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
+                      余额: {parseFloat(getBalance(fromToken)).toFixed(2)}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <TextField
+                      fullWidth
+                      type="number"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      placeholder="0.0"
+                      disabled={loading}
+                      variant="standard"
+                      InputProps={{
+                        disableUnderline: true,
+                        sx: {
+                          fontSize: '2rem',
+                          fontWeight: 500,
+                          color: '#fff',
+                          '& input': {
+                            textAlign: 'left',
+                            '&::placeholder': {
+                              color: 'rgba(255, 255, 255, 0.3)',
+                              opacity: 1
+                            }
+                          }
+                        }
+                      }}
+                    />
+                    <Button
+                      variant="contained"
+                      sx={{
+                        minWidth: '100px',
+                        bgcolor: 'rgba(255, 255, 255, 0.1)',
+                        color: '#fff',
+                        fontWeight: 600,
+                        py: 1,
+                        px: 2,
+                        borderRadius: 2,
+                        textTransform: 'none',
+                        '&:hover': {
+                          bgcolor: 'rgba(255, 255, 255, 0.15)',
+                        }
+                      }}
+                    >
+                      {fromToken}
+                    </Button>
+                  </Box>
+                </Paper>
 
-            {/* Swap Icon */}
-            <Box sx={{ textAlign: 'center', my: 2 }}>
-              <IconButton
-                sx={{
-                  bgcolor: 'rgba(255, 215, 0, 0.1)',
-                  border: '2px solid rgba(255, 215, 0, 0.3)',
-                  color: '#FFD700',
-                  '&:hover': {
-                    bgcolor: 'rgba(255, 215, 0, 0.2)',
-                    transform: 'rotate(180deg)',
-                    transition: 'transform 0.3s'
-                  }
-                }}
-              >
-                <SwapVertIcon />
-              </IconButton>
-            </Box>
-
-            {/* Output: ZAI */}
-            <Box sx={{ mb: 3 }}>
-              <Typography variant="body2" sx={{ color: '#B0C4DE', mb: 1 }}>
-                获得 ZAI（预计）
-              </Typography>
-              <TextField
-                fullWidth
-                value={calculating ? '计算中...' : expectedZAI}
-                placeholder="0.00"
-                disabled
-                InputProps={{
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <Typography sx={{ color: '#00BFFF', fontWeight: 'bold' }}>ZAI</Typography>
-                    </InputAdornment>
-                  )
-                }}
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    bgcolor: 'rgba(0, 191, 255, 0.05)',
-                    '& fieldset': {
-                      borderColor: 'rgba(0, 191, 255, 0.3)'
-                    }
-                  },
-                  '& input': {
-                    color: '#00BFFF',
-                    fontSize: '1.5rem',
-                    fontWeight: 'bold'
-                  }
-                }}
-              />
-              <Typography variant="caption" sx={{ color: '#90A4AE', mt: 0.5, display: 'block' }}>
-                余额: {parseFloat(zaiBalance).toFixed(2)} ZAI
-              </Typography>
-            </Box>
-
-            <Divider sx={{ my: 3, borderColor: 'rgba(255, 215, 0, 0.2)' }} />
-
-            {/* Slippage Setting */}
-            <Box sx={{ mb: 3 }}>
-              <Typography variant="body2" sx={{ color: '#B0C4DE', mb: 1 }}>
-                滑点容忍度 (%)
-              </Typography>
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                {['0.1', '0.5', '1.0'].map((val) => (
-                  <Button
-                    key={val}
-                    size="small"
-                    variant={slippage === val ? 'contained' : 'outlined'}
-                    onClick={() => setSlippage(val)}
+                {/* Swap Direction Button */}
+                <Box sx={{ display: 'flex', justifyContent: 'center', my: -1, position: 'relative', zIndex: 1 }}>
+                  <IconButton
+                    onClick={handleSwapDirection}
+                    disabled={loading}
                     sx={{
-                      flex: 1,
-                      borderColor: '#FFD700',
-                      color: slippage === val ? '#000' : '#FFD700',
-                      bgcolor: slippage === val ? '#FFD700' : 'transparent',
+                      bgcolor: 'rgba(255, 255, 255, 0.05)',
+                      border: '4px solid #0A0E17',
+                      color: '#fff',
                       '&:hover': {
-                        borderColor: '#FFA500',
-                        bgcolor: slippage === val ? '#FFA500' : 'rgba(255, 215, 0, 0.1)'
+                        bgcolor: 'rgba(255, 255, 255, 0.1)',
                       }
                     }}
                   >
-                    {val}%
-                  </Button>
-                ))}
-                <TextField
-                  size="small"
-                  type="number"
-                  value={slippage}
-                  onChange={(e) => setSlippage(e.target.value)}
+                    <SwapVertIcon />
+                  </IconButton>
+                </Box>
+
+                {/* To Token */}
+                <Paper
                   sx={{
-                    width: '80px',
-                    '& input': { color: '#fff', textAlign: 'center' }
+                    p: 2,
+                    bgcolor: 'rgba(255, 255, 255, 0.05)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: 2,
+                    mb: 3
                   }}
-                />
-              </Box>
-            </Box>
+                >
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                    <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
+                      接收（预计）
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.6)' }}>
+                      余额: {parseFloat(getBalance(toToken)).toFixed(2)}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Typography
+                      sx={{
+                        fontSize: '2rem',
+                        fontWeight: 500,
+                        color: amount && parseFloat(amount) > 0 ? '#fff' : 'rgba(255, 255, 255, 0.3)',
+                        flex: 1
+                      }}
+                    >
+                      {amount && parseFloat(amount) > 0 ? amount : '0.0'}
+                    </Typography>
+                    <Button
+                      variant="contained"
+                      sx={{
+                        minWidth: '100px',
+                        bgcolor: 'rgba(255, 255, 255, 0.1)',
+                        color: '#fff',
+                        fontWeight: 600,
+                        py: 1,
+                        px: 2,
+                        borderRadius: 2,
+                        textTransform: 'none',
+                        '&:hover': {
+                          bgcolor: 'rgba(255, 255, 255, 0.15)',
+                        }
+                      }}
+                    >
+                      {toToken}
+                    </Button>
+                  </Box>
+                </Paper>
 
-            {/* Info */}
-            <Alert
-              severity="info"
-              icon={<InfoIcon />}
-              sx={{
-                mb: 3,
-                bgcolor: 'rgba(0, 191, 255, 0.1)',
-                color: '#00BFFF',
-                border: '1px solid rgba(0, 191, 255, 0.3)'
-              }}
-            >
-              <Typography variant="caption">
-                兑换路径: USDT → ZUSD → ZAI<br />
-                预计滑点: {slippage}%<br />
-                交易期限: 20 分钟
-              </Typography>
-            </Alert>
+                {/* Exchange Rate Info */}
+                {amount && parseFloat(amount) > 0 && (
+                  <Alert
+                    severity="info"
+                    sx={{
+                      mb: 2,
+                      bgcolor: 'rgba(33, 114, 229, 0.1)',
+                      border: '1px solid rgba(33, 114, 229, 0.3)',
+                      color: '#2172E5',
+                      '& .MuiAlert-icon': {
+                        color: '#2172E5'
+                      }
+                    }}
+                  >
+                    <Typography variant="body2">
+                      1 {fromToken} = 1 {toToken}
+                    </Typography>
+                    <Typography variant="caption" sx={{ display: 'block', mt: 0.5 }}>
+                      兑换限额: 10 - 10,000 • 预计到账时间: ~30秒
+                    </Typography>
+                  </Alert>
+                )}
 
-            {/* Swap Button */}
-            <Button
-              fullWidth
-              variant="contained"
-              size="large"
-              onClick={handleSwap}
-              disabled={!account || loading || !usdtAmount || parseFloat(usdtAmount) <= 0}
-              sx={{
-                background: 'linear-gradient(135deg, #FFD700, #FFA500)',
-                color: '#000',
-                fontWeight: 700,
-                py: 2,
-                fontSize: '1.1rem',
-                boxShadow: '0 8px 30px rgba(255, 215, 0, 0.4)',
-                '&:hover': {
-                  background: 'linear-gradient(135deg, #FFA500, #FF8C00)',
-                  boxShadow: '0 12px 40px rgba(255, 215, 0, 0.6)',
-                },
-                '&:disabled': {
-                  background: 'rgba(255, 215, 0, 0.2)',
-                  color: 'rgba(255, 255, 255, 0.3)'
-                }
-              }}
-            >
-              {loading ? (
-                <>
-                  <CircularProgress size={20} sx={{ mr: 1, color: '#000' }} />
-                  处理中...
-                </>
-              ) : (
-                '用 USDT 购买 ZAI'
-              )}
-            </Button>
+                {/* Swap Button */}
+                <Button
+                  fullWidth
+                  variant="contained"
+                  size="large"
+                  onClick={handleSwap}
+                  disabled={loading || !amount || parseFloat(amount) <= 0}
+                  sx={{
+                    background: 'linear-gradient(135deg, #FF007A, #FF6B9D)',
+                    color: '#fff',
+                    fontWeight: 600,
+                    py: 2,
+                    fontSize: '1.1rem',
+                    textTransform: 'none',
+                    borderRadius: 2,
+                    '&:hover': {
+                      background: 'linear-gradient(135deg, #E6006D, #FF5A8C)',
+                    },
+                    '&:disabled': {
+                      background: 'rgba(255, 255, 255, 0.1)',
+                      color: 'rgba(255, 255, 255, 0.3)'
+                    }
+                  }}
+                >
+                  {loading ? (
+                    <>
+                      <CircularProgress size={20} sx={{ mr: 1, color: '#fff' }} />
+                      处理中...
+                    </>
+                  ) : (
+                    '兑换'
+                  )}
+                </Button>
+
+                {/* Wallet Info */}
+                <Box
+                  sx={{
+                    mt: 2,
+                    p: 2,
+                    bgcolor: 'rgba(255, 255, 255, 0.03)',
+                    borderRadius: 2,
+                    border: '1px solid rgba(255, 255, 255, 0.05)'
+                  }}
+                >
+                  <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.6)', display: 'block' }}>
+                    已连接钱包
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: '#fff', fontWeight: 500, mt: 0.5 }}>
+                    {account.substring(0, 6)}...{account.substring(account.length - 4)}
+                  </Typography>
+                </Box>
+              </>
+            )}
           </CardContent>
         </MotionCard>
-
-        {/* Price Impact Warning */}
-        {parseFloat(expectedZAI) > 0 && parseFloat(usdtAmount) > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-          >
-            <Alert
-              severity="warning"
-              sx={{
-                mt: 3,
-                bgcolor: 'rgba(255, 183, 77, 0.1)',
-                color: '#FFB74D',
-                border: '1px solid rgba(255, 183, 77, 0.3)'
-              }}
-            >
-              <Typography variant="body2">
-                兑换率: 1 USDT ≈ {(parseFloat(expectedZAI) / parseFloat(usdtAmount)).toFixed(4)} ZAI
-              </Typography>
-            </Alert>
-          </motion.div>
-        )}
       </Container>
     </Box>
   );
