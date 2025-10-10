@@ -12,11 +12,13 @@ import {
   IconButton,
   Paper,
   Select,
-  MenuItem
+  MenuItem,
+  Collapse
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import SwapVertIcon from '@mui/icons-material/SwapVert';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
+import SettingsIcon from '@mui/icons-material/Settings';
 import { ethers } from 'ethers';
 import { toast } from 'react-toastify';
 import { CONTRACTS } from '../utils/constants';
@@ -37,6 +39,8 @@ export default function Swap() {
   const [zaiBalance, setZaiBalance] = useState('0');
   const [estimatedOutput, setEstimatedOutput] = useState('0');
   const [loading, setLoading] = useState(false);
+  const [slippage, setSlippage] = useState('0.5'); // 默认 0.5% 滑点
+  const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
     checkWalletConnection();
@@ -179,6 +183,14 @@ export default function Swap() {
     }
   };
 
+  const handleSlippageChange = (value) => {
+    // 验证滑点值
+    const numValue = parseFloat(value);
+    if (value === '' || (!isNaN(numValue) && numValue >= 0 && numValue <= 50)) {
+      setSlippage(value);
+    }
+  };
+
   const handleSwap = async () => {
     if (!account) {
       toast.error('请先连接钱包！');
@@ -298,12 +310,14 @@ export default function Swap() {
         toast.success('✅ ZUSD 授权成功！');
       }
 
-      // 获取最新价格并设置滑点（1%）
+      // 获取最新价格并设置用户自定义滑点
       const amounts = await routerContract.getAmountsOut(amountIn, path);
-      const amountOutMin = (amounts[1] * 99n) / 100n; // 1% 滑点
+      const slippagePercent = parseFloat(slippage) || 0.5;
+      const slippageBps = BigInt(Math.floor((100 - slippagePercent) * 100)); // 转换为基点
+      const amountOutMin = (amounts[1] * slippageBps) / 10000n;
 
       // 执行兑换
-      toast.info(`正在兑换 ${amount} ZUSD 为 ZAI...`);
+      toast.info(`正在兑换 ${amount} ZUSD 为 ZAI (滑点: ${slippagePercent}%)...`);
       const deadline = Math.floor(Date.now() / 1000) + 60 * 20; // 20分钟
 
       const swapTx = await routerContract.swapExactTokensForTokens(
@@ -372,17 +386,31 @@ export default function Swap() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
         >
-          <Typography
-            variant="h4"
-            sx={{
-              fontWeight: 700,
-              textAlign: 'center',
-              mb: 4,
-              color: '#fff'
-            }}
-          >
-            兑换
-          </Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+            <Typography
+              variant="h4"
+              sx={{
+                fontWeight: 700,
+                color: '#fff'
+              }}
+            >
+              兑换
+            </Typography>
+            {account && isDEXMode && (
+              <IconButton
+                onClick={() => setShowSettings(!showSettings)}
+                sx={{
+                  color: '#fff',
+                  bgcolor: 'rgba(255, 255, 255, 0.05)',
+                  '&:hover': {
+                    bgcolor: 'rgba(255, 255, 255, 0.1)',
+                  }
+                }}
+              >
+                <SettingsIcon />
+              </IconButton>
+            )}
+          </Box>
         </motion.div>
 
         {/* Swap Card */}
@@ -399,6 +427,76 @@ export default function Swap() {
           }}
         >
           <CardContent sx={{ p: 3 }}>
+            {/* Slippage Settings (只在 DEX 模式显示) */}
+            {account && isDEXMode && (
+              <Collapse in={showSettings}>
+                <Paper
+                  sx={{
+                    p: 2,
+                    mb: 2,
+                    bgcolor: 'rgba(255, 255, 255, 0.03)',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: 2,
+                  }}
+                >
+                  <Typography variant="body2" sx={{ color: 'rgba(255, 255, 255, 0.7)', mb: 1.5 }}>
+                    滑点容差 (%)
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 1, mb: 1.5 }}>
+                    {['0.1', '0.5', '1.0'].map((preset) => (
+                      <Button
+                        key={preset}
+                        variant={slippage === preset ? 'contained' : 'outlined'}
+                        size="small"
+                        onClick={() => setSlippage(preset)}
+                        sx={{
+                          flex: 1,
+                          color: slippage === preset ? '#fff' : 'rgba(255, 255, 255, 0.7)',
+                          bgcolor: slippage === preset ? 'rgba(255, 0, 122, 0.8)' : 'transparent',
+                          borderColor: 'rgba(255, 255, 255, 0.2)',
+                          '&:hover': {
+                            bgcolor: slippage === preset ? 'rgba(255, 0, 122, 1)' : 'rgba(255, 255, 255, 0.05)',
+                            borderColor: 'rgba(255, 255, 255, 0.3)',
+                          }
+                        }}
+                      >
+                        {preset}%
+                      </Button>
+                    ))}
+                  </Box>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    value={slippage}
+                    onChange={(e) => handleSlippageChange(e.target.value)}
+                    placeholder="自定义"
+                    variant="outlined"
+                    size="small"
+                    InputProps={{
+                      endAdornment: <Typography sx={{ color: 'rgba(255, 255, 255, 0.5)', ml: 1 }}>%</Typography>,
+                      sx: {
+                        color: '#fff',
+                        '& .MuiOutlinedInput-notchedOutline': {
+                          borderColor: 'rgba(255, 255, 255, 0.2)',
+                        },
+                        '&:hover .MuiOutlinedInput-notchedOutline': {
+                          borderColor: 'rgba(255, 255, 255, 0.3)',
+                        },
+                        '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                          borderColor: '#FF007A',
+                        }
+                      }
+                    }}
+                  />
+                  {parseFloat(slippage) > 5 && (
+                    <Alert severity="warning" sx={{ mt: 1, fontSize: '0.75rem' }}>
+                      滑点过高可能导致交易损失
+                    </Alert>
+                  )}
+                </Paper>
+              </Collapse>
+            )}
+
             {/* Connect Wallet Button */}
             {!account ? (
               <Button
@@ -589,7 +687,7 @@ export default function Swap() {
                           {amount} ZUSD ≈ {estimatedOutput && parseFloat(estimatedOutput).toFixed(4)} ZAI
                         </Typography>
                         <Typography variant="caption" sx={{ display: 'block', mt: 0.5 }}>
-                          PancakeSwap 实时兑换 • 滑点: 1% • 即时到账
+                          PancakeSwap 实时兑换 • 滑点: {slippage}% • 即时到账
                         </Typography>
                       </>
                     )}
